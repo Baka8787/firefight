@@ -23,16 +23,11 @@ class Particle {
       v.y += 0.28;
       v.mult(0.985);
     } else if (currentAgent == Agent.POWDER) {
-      // 乾粉物理：中等阻力 + 輕微下墜（維持中距離穿透力）
-      v.mult(0.92);
-      v.y += 0.04;
-
-      // 布朗運動般的隨機晃動 (Brownian Motion)
-      float noiseX = (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.9;
-      v.x += noiseX;
-
-      // 側向噴散，保持近距離濃密
-      v.x += (noise(driftSeed + 100, frameCount * 0.03) - 0.5) * 0.4;
+        v.mult(0.96); // 原本 0.92，阻力放輕讓粒子飛更遠
+        v.y += 0.04;
+        float noiseX = (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.9;
+        v.x += noiseX;
+        v.x += (noise(driftSeed + 100, frameCount * 0.03) - 0.5) * 0.4;
     } else if (currentAgent == Agent.CO2) {
       // CO2 物理：噴射後擴散並受熱氣流上升影響
       v.mult(0.94);
@@ -96,7 +91,7 @@ class Particle {
   void checkFireCollision() {
     // 使用動態 firePos 檢測火源範圍，並加入相對效率
     float hitDist = dist(p.x, p.y, firePos.x, firePos.y);
-    float effectiveRadius = (currentAgent == Agent.POWDER) ? 140 : 95; // 乾粉範圍更大
+    float effectiveRadius = (currentAgent == Agent.POWDER) ? 200 : 95; // 乾粉範圍更大
 
     if (hitDist < effectiveRadius) {
       float distFactor;

@@ -91,13 +91,16 @@ void generateParticles(PVector target, float radius) {
   float emitY = lerpNozzleY + sin(angle) * muzzleLength;
   PVector emitPos = new PVector(emitX, emitY);
 
-  // 後座力：噴射時噴嘴微幅下壓，lerp 自然回彈
   if (isPressing()) {
     lerpNozzleY = lerp(lerpNozzleY, height - 60 + 12, 0.4);
   }
 
-  PVector diff = PVector.sub(target, emitPos);
+  PVector virtualOrigin = new PVector(width * 0.5, height - 60);
+  PVector diff = PVector.sub(target, virtualOrigin);
   float distance = diff.mag();
+
+  // 用螢幕對角線當基準，避免遠距離 speed 被截斷
+  float maxDist = sqrt(width * width + height * height);
 
   int count = int(map(extinguisherPressure, 0, 100, 2, 6));
   for (int i = 0; i < count; i++) {
@@ -108,13 +111,13 @@ void generateParticles(PVector target, float radius) {
     float spread;
 
     if (currentAgent == Agent.POWDER) {
-      speed  = map(distance, 0, height, 15, 30);
+      speed  = map(distance, 0, maxDist, 20, 55); // 提高上限
       spread = 0.4;
     } else if (currentAgent == Agent.CO2) {
-      speed  = map(distance, 0, height, 20, 40);
+      speed  = map(distance, 0, maxDist, 25, 60);
       spread = 0.25;
     } else {
-      speed  = map(distance, 0, height, 10, 25);
+      speed  = map(distance, 0, maxDist, 15, 45);
       spread = 0.15;
     }
 
