@@ -45,10 +45,6 @@ class Particle {
     } else {
       lifespan -= 3.5;
     }
-
-    if (!hasCollided && lifespan > 0) {
-      checkFireCollision();
-    }
   }
 
   void display() {
@@ -89,37 +85,55 @@ class Particle {
   }
 
   void checkFireCollision() {
-    // 使用動態 firePos 檢測火源範圍，並加入相對效率
     float hitDist = dist(p.x, p.y, firePos.x, firePos.y);
-    float effectiveRadius = (currentAgent == Agent.POWDER) ? 200 : 95; // 乾粉範圍更大
-
+    
+    // 縮小有效半徑，要求更精準的瞄準
+    float effectiveRadius;
+    if (currentAgent == Agent.POWDER) {
+      effectiveRadius = 80;  // 原本 200
+    } else if (currentAgent == Agent.CO2) {
+      effectiveRadius = 60;  // CO2 要求最精準
+    } else {
+      effectiveRadius = 50;  // 水柱最集中
+    }
+  
     if (hitDist < effectiveRadius) {
       float distFactor;
-      if (currentAgent == Agent.POWDER) {
-        distFactor = map(hitDist, 0, effectiveRadius, 1.0, 0.6);
-      } else {
-        distFactor = map(hitDist, 0, effectiveRadius, 1.0, 0.3);
-      }
+      
+      // 距離衰減改用平方，邊緣效果大幅降低，核心命中才有明顯效果
+      float normalized = hitDist / effectiveRadius; // 0(正中心) ~ 1(邊緣)
+      distFactor = 1.0 - (normalized * normalized); // 平方衰減
       distFactor = constrain(distFactor, 0, 1);
+      
       applyExtinguishLogic(distFactor);
       hasCollided = true;
     }
   }
 
-  void applyExtinguishLogic(float distFactor) {
-    float damage;
-    if (currentFireType == FireType.ELECTRICAL && currentAgent == Agent.WATER) {
-      damage = -0.4 * distFactor;
-    } else if (currentAgent == Agent.POWDER) {
-      damage = 0.35 * distFactor;
-    } else if (currentAgent == Agent.CO2) {
-      float baseEff = (currentFireType == FireType.ELECTRICAL) ? 0.9 : 0.4;
-      damage = baseEff * pow(distFactor, 2);
-    } else {
-      damage = 0.6 * distFactor;
+    void applyExtinguishLogic(float distFactor) {
+        // 根部判定：粒子打到火源上半部效率大幅降低
+        float heightPenalty = 1.0;
+        if (p.y < firePos.y - 20) {       // 打太高
+            heightPenalty = 0.15;
+        } else if (p.y < firePos.y + 10) { // 根部附近（最佳）
+            heightPenalty = 1.0;
+        } else {
+            heightPenalty = 0.5;             // 打太低
+        }
+
+        float damage;
+        if (currentFireType == FireType.ELECTRICAL && currentAgent == Agent.WATER) {
+            damage = -0.4 * distFactor;
+        } else if (currentAgent == Agent.POWDER) {
+            damage = 0.55 * distFactor * heightPenalty;
+        } else if (currentAgent == Agent.CO2) {
+            float baseEff = (currentFireType == FireType.ELECTRICAL) ? 1.2 : 0.6;
+            damage = baseEff * pow(distFactor, 2) * heightPenalty;
+        } else {
+            damage = 0.8 * distFactor * heightPenalty;
+        }
+        fireHealth = constrain(fireHealth - damage, 0, 100);
     }
-    fireHealth = constrain(fireHealth - damage, 0, 100);
-  }
 
   boolean isDead() { return lifespan <= 0; }
 }

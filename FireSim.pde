@@ -50,24 +50,39 @@ void updateFireParticles() {
   }
 }
 
-/**
- * 強化後的滅火效率判定（含錯誤藥劑懲罰）
- * 注意：目前由 Particle.checkFireCollision() 主導傷害，
- * 此函式保留供外部直接呼叫使用
- */
-void checkExtinguishEffect(PVector pos, float radius) {
-  float d = dist(pos.x, pos.y, firePos.x, firePos.y);
-  float efficiency = map(radius, 20, 150, 1.2, 0.3);
 
-  // 根部判定：瞄準過高效率降為 10%
-  if (pos.y > firePos.y + 20) efficiency *= 0.1;
+void checkExtinguishByCrosshair() {
+  float d = dist(crosshairPos.x, crosshairPos.y, firePos.x, firePos.y);
 
-  float damage = 0;
-  if (currentFireType == FireType.ELECTRICAL && currentAgent == Agent.WATER) {
-    damage = -0.2;
-    shakeScreen();
+  // 準心必須在這個範圍內才算對準
+  float aimRadius = sprayRadius * 0.8;
+  if (d > aimRadius) return; // 沒對準，直接不造成傷害
+
+  // 距離衰減：正中心傷害最高
+  float distFactor = 1.0 - (d / aimRadius);
+  distFactor = pow(distFactor, 1.5); // 稍微收斂，避免邊緣太容易觸發
+
+  // 根部判定：準心 Y 軸要接近火源根部
+  float heightPenalty;
+  if (crosshairPos.y >= firePos.y - 30 && crosshairPos.y <= firePos.y + 30) {
+    heightPenalty = 1.0;  // 根部命中
+  } else if (crosshairPos.y < firePos.y - 30) {
+    heightPenalty = 0.1;  // 打太高，幾乎無效
   } else {
-    if (d < radius + 60) damage = efficiency * 0.8;
+    heightPenalty = 0.4;  // 打太低
+  }
+
+  // 藥劑匹配
+  float damage;
+  if (currentFireType == FireType.ELECTRICAL && currentAgent == Agent.WATER) {
+    damage = -0.3 * distFactor; // 懲罰
+  } else if (currentAgent == Agent.POWDER) {
+    damage = 0.5 * distFactor * heightPenalty;
+  } else if (currentAgent == Agent.CO2) {
+    float baseEff = (currentFireType == FireType.ELECTRICAL) ? 1.0 : 0.45;
+    damage = baseEff * distFactor * heightPenalty;
+  } else {
+    damage = 0.7 * distFactor * heightPenalty;
   }
 
   fireHealth = constrain(fireHealth - damage, 0, 100);

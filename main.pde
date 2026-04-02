@@ -122,6 +122,7 @@ void updateSimulation() {
       generateParticles(crosshairPos, sprayRadius);
     }
     extinguisherPressure -= 0.1; // 消耗壓力
+    checkExtinguishByCrosshair();
   }
   
   // 5. 更新並描繪粒子（關鍵！）
