@@ -95,47 +95,45 @@ void generateParticles(PVector target, float radius) {
     lerpNozzleY = lerp(lerpNozzleY, height - 60 + 12, 0.4);
   }
 
-  // 各藥劑物理參數
   float gravity, drag, flightFrames, spreadMult;
   if (currentAgent == Agent.POWDER) {
-    gravity      = 0.04;  // 乾粉幾乎不受重力
+    gravity      = 0.04;
     drag         = 0.96;
-    flightFrames = 35;    // 預估飛行幀數（影響初速計算）
+    flightFrames = 35;
     spreadMult   = 1.0;
   } else if (currentAgent == Agent.CO2) {
-    gravity      = 0.02;  // CO2 最輕
+    gravity      = 0.02;
     drag         = 0.94;
     flightFrames = 28;
     spreadMult   = 0.6;
-  } else {                // WATER
-    gravity      = 0.28;  // 水受重力最明顯
+  } else {
+    gravity      = 0.28;
     drag         = 0.985;
-    flightFrames = 40;
-    spreadMult   = 0.4;
+    flightFrames = 38;
+    spreadMult   = 1.2;
   }
 
-  // 反推初速度：模擬 drag 與 gravity 累積效應後推回出口速度
-  // 概念：粒子每幀 v *= drag，位移累積 = v0 * sum(drag^t)
-  // sum(drag^t, t=0..n) ≈ (1 - drag^n) / (1 - drag)
   float dragSum = (1.0 - pow(drag, flightFrames)) / (1.0 - drag);
-
-  // X 方向：純靠初速 * dragSum 到達目標
   float dx = target.x - emitPos.x;
   float vx0 = dx / dragSum;
 
-  // Y 方向：重力每幀累積下墜，需補償
-  // 重力對 Y 的貢獻（粗估）：gravity * sum(t * drag^t) ≈ gravity * dragSum * flightFrames * 0.5
-  float gravityContrib = gravity * dragSum * flightFrames * 0.5;
+  float gravityBias = 0.5; // 落點偏下就調小，偏上就調大
+  float gravityContrib = gravity * dragSum * flightFrames * gravityBias;
   float dy = target.y - emitPos.y;
   float vy0 = (dy - gravityContrib) / dragSum;
 
+  // 動態 lifespan
+//   float travelDist = dist(emitPos.x, emitPos.y, target.x, target.y);
+//   float decayRate = (currentAgent == Agent.CO2) ? 5.0 : 
+//                     (currentAgent == Agent.POWDER) ? 2.5 : 3.5;
+//   float targetLifespan = flightFrames * decayRate;
+//   targetLifespan *= map(travelDist, 0, dist(0, 0, width, height), 0.6, 1.4);
+//   targetLifespan = constrain(targetLifespan, 60, 400);
+
   int count = int(map(extinguisherPressure, 0, 100, 2, 6));
   for (int i = 0; i < count; i++) {
-
-    // 在計算好的初速上加入隨機散布
     float spreadX = random(-spreadMult, spreadMult);
     float spreadY = random(-spreadMult * 0.5, spreadMult * 0.5);
-
     PVector v = new PVector(vx0 + spreadX, vy0 + spreadY);
     particles.add(new Particle(emitPos.copy(), v, getAgentColor()));
   }
