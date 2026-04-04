@@ -3,6 +3,47 @@
  * 所有純繪製介面組件，只讀全域變數，不修改任何狀態
  */
 
+void drawMissionSelectScreen() {
+  pushStyle();
+  textAlign(CENTER, CENTER);
+  
+  // 標題
+  fill(255);
+  textSize(32);
+  text("請選擇訓練任務", width/2, 100);
+  
+  // 任務卡片繪製
+  for (int i = 0; i < missions.length; i++) {
+    float x = width/2;
+    float y = 250 + i * 120;
+    
+    // 選中效果
+    if (i == selectedMissionIdx) {
+      fill(0, 150, 255, 100);
+      stroke(0, 200, 255);
+      strokeWeight(3);
+      rect(x - 250, y - 50, 500, 100, 15);
+    } else {
+      fill(60);
+      noStroke();
+      rect(x - 250, y - 50, 500, 100, 15);
+    }
+    
+    fill(255);
+    textSize(22);
+    text(missions[i].name, x, y - 15);
+    textSize(14);
+    fill(200);
+    text(missions[i].description, x, y + 20);
+  }
+  
+  // 操作提示
+  fill(255, 200, 0);
+  textSize(16);
+  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 開始演練", width/2, height - 80);
+  popStyle();
+}
+
 /**
  * 繪製動態準心 (Dynamic Reticle)
  */

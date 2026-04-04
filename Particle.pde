@@ -16,36 +16,38 @@ class Particle {
     this.initialSize = (currentAgent == Agent.POWDER) ? random(5, 8) : 10;
   }
 
-  void update() {
-    prevP.set(p); // 記錄當前位置
-    
+    void update() {
+    prevP.set(p);
+
     if (currentAgent == Agent.WATER) {
-      v.y += 0.28;
-      v.mult(0.985);
+        v.y += 0.28;       // 與 generateParticles gravity 一致
+        v.mult(0.985);     // 與 drag 一致
+
     } else if (currentAgent == Agent.POWDER) {
-        v.mult(0.96); // 原本 0.92，阻力放輕讓粒子飛更遠
-        v.y += 0.04;
-        float noiseX = (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.9;
+        v.y += 0.04;       // 一致
+        v.mult(0.96);      // 一致
+        // 布朗運動保留，但幅度縮小避免偏離落點太多
+        float noiseX = (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.5;
         v.x += noiseX;
-        v.x += (noise(driftSeed + 100, frameCount * 0.03) - 0.5) * 0.4;
+
     } else if (currentAgent == Agent.CO2) {
-      // CO2 物理：噴射後擴散並受熱氣流上升影響
-      v.mult(0.94);
-      v.y -= 0.02;
-      initialSize = 12;
+        v.y += 0.02;       // 一致（原本是 v.y -= 0.02，改為微幅下墜）
+        v.mult(0.94);      // 一致
+        initialSize = 12;
     }
 
     p.add(v);
 
-    // 生命週期調整：CO2 最快、乾粉最長、水在中間
     if (currentAgent == Agent.CO2) {
-      lifespan -= 5.0;
+        lifespan -= 5.0;
     } else if (currentAgent == Agent.POWDER) {
-      lifespan -= 2.5;
+        lifespan -= 2.5;
     } else {
-      lifespan -= 3.5;
+        lifespan -= 3.5;
     }
-  }
+
+    // 粒子碰撞判定已移除，傷害由準心決定
+    }
 
   void display() {
     float alpha = map(lifespan, 255, 0, 180, 0);

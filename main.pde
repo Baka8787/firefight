@@ -4,7 +4,7 @@
  */
 
 // 系統狀態定義
-enum State { START, PLAYING, RESULT }
+enum State { START, SELECT_MISSION, PLAYING, RESULT }
 enum FireType { GENERAL, ELECTRICAL }
 enum Agent { WATER, POWDER, CO2 } 
 State currentState = State.START;
@@ -46,42 +46,46 @@ float nozzleX, nozzleY;
 float nozzleAngle = 0;
 float lerpNozzleX, lerpNozzleY; // 平滑後的噴嘴座標
 
+// 任務配置結構
+class Mission {
+  String name;
+  FireType type;
+  int timeLimit;
+  float initialHealth;
+  String description;
+
+  Mission(String n, FireType t, int time, float hp, String desc) {
+    name = n; type = t; timeLimit = time; initialHealth = hp; description = desc;
+  }
+}
+
+Mission[] missions;
+int selectedMissionIdx = 0;
+
 void setup() {
   size(1280, 720);
-  
-  // 解決中文字碼測醢 - Windows 使用安裝似愛戳正黑體
   mainFont = createFont("Microsoft JhengHei", 32);
   textFont(mainFont);
   
-  // 初始化火源位置為隨機
+  // 關鍵修正：初始化陣列空間
+  missions = new Mission[3];
+  missions[0] = new Mission("一般火災演練", FireType.GENERAL, 120, 100, "撲滅 A 類普通火災（木材、紙張）");
+  missions[1] = new Mission("電器火災挑戰", FireType.ELECTRICAL, 90, 80, "注意！嚴禁使用水基滅火劑");
+  missions[2] = new Mission("緊急複合演練", FireType.GENERAL, 60, 150, "高難度：火勢蔓延極快");
+
   firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
-  
   targetPos = new PVector(width/2, height/2);
   crosshairPos = new PVector(width/2, height/2);
-  textAlign(LEFT);
-  textSize(16);
-  
-  // 初始化噴管位置
-  nozzleX = width/2;
-  nozzleY = height - 80;
-  lerpNozzleX = nozzleX;
-  lerpNozzleY = nozzleY;
 }
 
 void draw() {
   background(30);
   
   switch(currentState) {
-    case START:
-      drawStartScreen();
-      break;
-    case PLAYING:
-      updateSimulation();
-      drawGameUI();
-      break;
-    case RESULT:
-      drawResultScreen();
-      break;
+    case START: drawStartScreen(); break;
+    case SELECT_MISSION: drawMissionSelectScreen(); break; // 新增狀態
+    case PLAYING: updateSimulation(); drawGameUI(); break;
+    case RESULT: drawResultScreen(); break;
   }
 }
 
@@ -177,41 +181,73 @@ void updateTimer() {
 }
 
 
-
-
-
-
-
-
+/**
+ * 處理鍵盤輸入邏輯：支援狀態切換、任務選擇與藥劑控制
+ */
 void keyPressed() {
-  // 數字鍵 1, 2, 3 切換藥劑 (模擬硬體切換) - 加入冷卻時間
   int now = millis();
-  if (now - lastAgentSwitch > agentSwitchCooldown) {
-    if (key == '1') {
-      currentAgent = Agent.WATER;
-      lastAgentSwitch = now;
-    } else if (key == '2') {
-      currentAgent = Agent.POWDER;
-      lastAgentSwitch = now;
-    } else if (key == '3') {
-      currentAgent = Agent.CO2;
-      lastAgentSwitch = now;
-    }
-  }
-  
+
   if (key == 'r' || key == 'R') {
-    // 重新開始
-    currentState = State.START;
-    fireHealth = 100;
-    extinguisherPressure = 100;
-    remainingTime = 180;
-    // 重新隨機火源位置
-    firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
-    particles.clear();
-    fireParticles.clear(); // 清理火焰粒子
-  } else if (currentState == State.START) {
-    // 開始遊戲
-    currentState = State.PLAYING;
-    lastTimeUpdate = millis();
+    resetToStart();
+    return;
   }
+
+  switch (currentState) {
+    case START:
+      currentState = State.SELECT_MISSION;
+      break;
+
+    case SELECT_MISSION:
+      if (keyCode == UP) {
+        selectedMissionIdx = (selectedMissionIdx - 1 + missions.length) % missions.length;
+      } 
+      else if (keyCode == DOWN) {
+        selectedMissionIdx = (selectedMissionIdx + 1) % missions.length;
+      } 
+      else if (key == ENTER) {
+        initializeSelectedMission();
+        currentState = State.PLAYING;
+        lastTimeUpdate = millis();
+      }
+      break;
+
+    case PLAYING:
+      // 藥劑切換邏輯
+      if (now - lastAgentSwitch > agentSwitchCooldown) {
+        if (key == '1') { currentAgent = Agent.WATER; lastAgentSwitch = now; }
+        else if (key == '2') { currentAgent = Agent.POWDER; lastAgentSwitch = now; }
+        else if (key == '3') { currentAgent = Agent.CO2; lastAgentSwitch = now; }
+      }
+      break;
+  }
+}
+
+/**
+ * 輔助函數：初始化所選任務的參數
+ */
+void initializeSelectedMission() {
+  Mission m = missions[selectedMissionIdx];
+  currentFireType = m.type;
+  remainingTime = m.timeLimit;
+  fireHealth = m.initialHealth;
+  extinguisherPressure = 100.0f; [cite: 110]
+  
+  // 重新配置火源位置
+  firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9)); [cite: 110]
+  
+  // 清理殘留粒子 [cite: 111]
+  particles.clear();
+  fireParticles.clear();
+}
+
+/**
+ * 輔助函數：重置系統至初始狀態
+ */
+void resetToStart() {
+  currentState = State.START;
+  fireHealth = 100.0f; [cite: 110]
+  extinguisherPressure = 100.0f; [cite: 110]
+  remainingTime = 180; [cite: 110]
+  particles.clear(); [cite: 111]
+  fireParticles.clear(); [cite: 111]
 }

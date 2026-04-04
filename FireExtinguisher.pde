@@ -95,35 +95,48 @@ void generateParticles(PVector target, float radius) {
     lerpNozzleY = lerp(lerpNozzleY, height - 60 + 12, 0.4);
   }
 
-  PVector virtualOrigin = new PVector(width * 0.5, height - 60);
-  PVector diff = PVector.sub(target, virtualOrigin);
-  float distance = diff.mag();
+  // 各藥劑物理參數
+  float gravity, drag, flightFrames, spreadMult;
+  if (currentAgent == Agent.POWDER) {
+    gravity      = 0.04;  // 乾粉幾乎不受重力
+    drag         = 0.96;
+    flightFrames = 35;    // 預估飛行幀數（影響初速計算）
+    spreadMult   = 1.0;
+  } else if (currentAgent == Agent.CO2) {
+    gravity      = 0.02;  // CO2 最輕
+    drag         = 0.94;
+    flightFrames = 28;
+    spreadMult   = 0.6;
+  } else {                // WATER
+    gravity      = 0.28;  // 水受重力最明顯
+    drag         = 0.985;
+    flightFrames = 40;
+    spreadMult   = 0.4;
+  }
 
-  // 用螢幕對角線當基準，避免遠距離 speed 被截斷
-  float maxDist = sqrt(width * width + height * height);
+  // 反推初速度：模擬 drag 與 gravity 累積效應後推回出口速度
+  // 概念：粒子每幀 v *= drag，位移累積 = v0 * sum(drag^t)
+  // sum(drag^t, t=0..n) ≈ (1 - drag^n) / (1 - drag)
+  float dragSum = (1.0 - pow(drag, flightFrames)) / (1.0 - drag);
+
+  // X 方向：純靠初速 * dragSum 到達目標
+  float dx = target.x - emitPos.x;
+  float vx0 = dx / dragSum;
+
+  // Y 方向：重力每幀累積下墜，需補償
+  // 重力對 Y 的貢獻（粗估）：gravity * sum(t * drag^t) ≈ gravity * dragSum * flightFrames * 0.5
+  float gravityContrib = gravity * dragSum * flightFrames * 0.5;
+  float dy = target.y - emitPos.y;
+  float vy0 = (dy - gravityContrib) / dragSum;
 
   int count = int(map(extinguisherPressure, 0, 100, 2, 6));
   for (int i = 0; i < count; i++) {
-    PVector v = diff.copy();
-    v.normalize();
 
-    float speed;
-    float spread;
+    // 在計算好的初速上加入隨機散布
+    float spreadX = random(-spreadMult, spreadMult);
+    float spreadY = random(-spreadMult * 0.5, spreadMult * 0.5);
 
-    if (currentAgent == Agent.POWDER) {
-      speed  = map(distance, 0, maxDist, 20, 55); // 提高上限
-      spread = 0.4;
-    } else if (currentAgent == Agent.CO2) {
-      speed  = map(distance, 0, maxDist, 25, 60);
-      spread = 0.25;
-    } else {
-      speed  = map(distance, 0, maxDist, 15, 45);
-      spread = 0.15;
-    }
-
-    v.mult(speed + random(-3, 3));
-    v.rotate(random(-spread, spread));
-
+    PVector v = new PVector(vx0 + spreadX, vy0 + spreadY);
     particles.add(new Particle(emitPos.copy(), v, getAgentColor()));
   }
 }
