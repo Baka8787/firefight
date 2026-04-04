@@ -230,10 +230,10 @@ void initializeSelectedMission() {
   currentFireType = m.type;
   remainingTime = m.timeLimit;
   fireHealth = m.initialHealth;
-  extinguisherPressure = 100.0f; [cite: 110]
+  extinguisherPressure = 100.0f; 
   
   // 重新配置火源位置
-  firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9)); [cite: 110]
+  firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
   
   // 清理殘留粒子 [cite: 111]
   particles.clear();
@@ -245,9 +245,9 @@ void initializeSelectedMission() {
  */
 void resetToStart() {
   currentState = State.START;
-  fireHealth = 100.0f; [cite: 110]
-  extinguisherPressure = 100.0f; [cite: 110]
-  remainingTime = 180; [cite: 110]
-  particles.clear(); [cite: 111]
-  fireParticles.clear(); [cite: 111]
+  fireHealth = 100.0f; 
+  extinguisherPressure = 100.0f; 
+  remainingTime = 180; 
+  particles.clear();
+  fireParticles.clear(); 
 }
