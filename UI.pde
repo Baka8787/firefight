@@ -44,6 +44,23 @@ void drawMissionSelectScreen() {
   popStyle();
 }
 
+void drawpictures(){
+  PImage currentBg = missionPics[selectedMissionIdx];
+  if (currentBg != null) {
+    pushStyle();
+    imageMode(CORNER); // 從左上角開始繪製
+    
+    // 實用技巧：使用 tint 稍微降低背景亮度 (例如 150)
+    // 這樣可以避免背景圖太亮，導致白色的火焰或準心看不清楚
+    tint(255, 150); 
+    
+    // 畫滿整個視窗大小 (width, height) 作為背景
+    image(currentBg, 0, 0, width, height);
+    popStyle();
+  }
+}
+
+
 /**
  * 繪製動態準心 (Dynamic Reticle)
  */

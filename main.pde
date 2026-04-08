@@ -2,6 +2,12 @@
  * Firefighting Training System - Core Logic
  * Language: Processing (Java-based)
  */
+ 
+ 
+//新增:音效
+import processing.sound.*;
+SoundFile bgm;
+SoundFile waterSfx;
 
 // 系統狀態定義
 enum State { START, SELECT_MISSION, PLAYING, RESULT }
@@ -60,18 +66,34 @@ class Mission {
 }
 
 Mission[] missions;
+//新加:圖片
+PImage[] missionPics = new PImage[3];
+
 int selectedMissionIdx = 0;
 
 void setup() {
   size(1280, 720);
+  pixelDensity(1);
   mainFont = createFont("Microsoft JhengHei", 32);
   textFont(mainFont);
   
-  // 關鍵修正：初始化陣列空間
+  // ---> 新增：載入並開始循環播放音樂 <---
+  bgm = new SoundFile(this, "VideoHead.mp3");
+  bgm.loop();
+  
+  waterSfx = new SoundFile(this, "water.mp3");
+
+  // 初始化任務陣列 [cite: 99-100]
   missions = new Mission[3];
   missions[0] = new Mission("一般火災演練", FireType.GENERAL, 120, 100, "撲滅 A 類普通火災（木材、紙張）");
   missions[1] = new Mission("電器火災挑戰", FireType.ELECTRICAL, 90, 80, "注意！嚴禁使用水基滅火劑");
   missions[2] = new Mission("緊急複合演練", FireType.GENERAL, 60, 150, "高難度：火勢蔓延極快");
+  
+  // ---> 新增：載入任務對應的圖片 <---
+  // 記得將副檔名改成您實際的格式 (如 .png 或 .jpg)
+  missionPics[0] = loadImage("pic0.jpg"); 
+  missionPics[1] = loadImage("pic1.jpg");
+  missionPics[2] = loadImage("pic2.jpg");
 
   firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
   targetPos = new PVector(width/2, height/2);
@@ -92,7 +114,7 @@ void draw() {
 /**
  * 更新模擬邏輯：包含座標插值與滅火判定
  */
-void updateSimulation() {
+  void updateSimulation() {
   // 0. 更新計時器
   updateTimer();
   
@@ -127,6 +149,10 @@ void updateSimulation() {
     }
     extinguisherPressure -= 0.1; // 消耗壓力
     checkExtinguishByCrosshair();
+    
+    if (!waterSfx.isPlaying()) {
+      waterSfx.play(); 
+    }
   }
   
   // 5. 更新並描繪粒子（關鍵！）
@@ -149,6 +175,10 @@ void updateSimulation() {
 // --- 介面組件 (UI Components) ---
 
 void drawGameUI() {
+  
+  //新加的
+  drawpictures();
+  
   // 底層：火焰
   drawFire();
   
@@ -208,6 +238,12 @@ void keyPressed() {
         initializeSelectedMission();
         currentState = State.PLAYING;
         lastTimeUpdate = millis();
+        
+       
+        if (bgm.isPlaying()) {
+          bgm.stop();
+        }
+        
       }
       break;
 
@@ -250,4 +286,9 @@ void resetToStart() {
   remainingTime = 180; 
   particles.clear();
   fireParticles.clear(); 
+  
+  
+  if (!bgm.isPlaying()) {
+    bgm.loop();
+  }
 }
