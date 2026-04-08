@@ -1,6 +1,7 @@
 /**
- * Particle.pde (CO2 氣體體積與消散強化版)
- * 解決 CO2 噴灑過細問題，模擬從高壓噴流轉化為濃密冷霧的動態
+ * Particle.pde
+ * 負責滅火介質（水、乾粉、CO2）的物理模擬與視覺呈現。
+ * 優化重點：生命緩衝區、尾端隨機化、以及氣化體積感。
  */
 class Particle {
   PVector p, v, prevP; 
@@ -9,12 +10,14 @@ class Particle {
   float initialSize;
   float driftSeed; 
 
-  // 生命緩衝區：設為 2.0 確保粒子在到達準心 (127) 後，仍有 50% 的生命展現氣化效果 [cite: 124]
-  float lifeBuffer = 2.0; 
+  // 生命緩衝區：數值越大，噴灑越會「穿過」準心後才消失。
+  // 設為 2.2 確保粒子抵達準心 (127) 時，仍保有 50% 以上的生命進行擴散。 [cite: 124]
+  float lifeBuffer = 2.2; 
 
   float splashOffsetX, splashOffsetY, splashSize;
   float mistOffsetX, mistOffsetY;
 
+  // 靜態顏色基底，優化渲染效能
   static final color WATER_DEEP  = #3C96FF; 
   static final color WATER_MIST  = #C8E6FF; 
 
@@ -25,16 +28,16 @@ class Particle {
     this.c      = c;
     this.driftSeed   = random(1000);
 
-    // 1. 生命衰減隨機化：消除尾端平整硬切感的關鍵 [cite: 38]
+    // 1. 生命衰減隨機化：消除尾端平整硬切感的關鍵因子。 [cite: 38]
     float decayVar = random(0.85, 1.15);
 
+    // 2. 根據藥劑類型設定尺寸與衰減速率（需與 generateParticles 幀數對齊）。 [cite: 116, 124-126]
     if (currentAgent == Agent.POWDER) {
       this.initialSize = random(8, 12);
       this.lifespanDecay = (255.0 / (35.0 * lifeBuffer)) * decayVar; 
     } else if (currentAgent == Agent.CO2) {
-      // CO2 初始噴流寬度稍微加粗，增加存在感
-      this.initialSize = 15; 
-      this.lifespanDecay = (255.0 / (26.0 * lifeBuffer)) * decayVar;
+      this.initialSize = 20; // 增加初段寬度以符合喇叭管視覺
+      this.lifespanDecay = (255.0 / (30.0 * lifeBuffer)) * decayVar; // 對齊 30 幀
     } else {
       this.initialSize = random(6, 14);
       this.lifespanDecay = (255.0 / (38.0 * lifeBuffer)) * decayVar;
@@ -42,108 +45,102 @@ class Particle {
 
     this.lifespan = 255;
 
-    // 預計算美術偏移
+    // 預計算隨機偏移，避免在 display() 中呼叫 random()。
     this.splashOffsetX = random(-1.5, 1.5);
     this.splashOffsetY = random(-1.0, 1.0);
     this.splashSize    = random(0.3, 0.9);
-    this.mistOffsetX   = random(-12, 12); // CO2 氣體亂流較強
+    this.mistOffsetX   = random(-12, 12); 
     this.mistOffsetY   = random(-12, 12);
   }
 
+  /**
+   * 更新物理狀態。 [cite: 117-123]
+   */
   void update() {
     prevP.set(p);
 
     if (currentAgent == Agent.WATER) {
-      v.y += 0.28; v.mult(0.985);
+      v.y += 0.28; 
+      v.mult(0.985);
     } else if (currentAgent == Agent.POWDER) {
-      v.y += 0.03; v.mult(0.965); 
-      float noiseX = (noise(driftSeed, frameCount * 0.04) - 0.5) * 0.9;
-      v.x += noiseX;   
+      v.y += 0.03; 
+      v.mult(0.965); 
+      // 模擬粉塵在空氣中的晃動。 [cite: 120-121]
+      v.x += (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.9;
     } else if (currentAgent == Agent.CO2) {
-      // CO2 物理：極速噴射後迅速受到空氣阻力慢下來，並產生上浮感 [cite: 122-123]
-      v.mult(0.92); // 阻力加大，讓氣體在準心處迅速擴張
-      v.y -= 0.03;  // 模擬熱氣流帶著二氧化碳微幅上升
+      v.mult(0.96); // 降低阻力，讓氣體噴射感更扎實
+      v.y -= 0.02;  // 氣體受熱輕微上浮。 [cite: 123]
     }
 
-    // 末端動能衰減：產生自然的消散弧度
+    // 末端動能衰減：產生自然的下墜弧度
     if (lifespan < 80) {
       v.mult(0.94);
+      if (currentAgent != Agent.CO2) v.y += 0.1; 
     }
 
     p.add(v);
     lifespan -= lifespanDecay;
   }
 
+  /**
+   * 視覺繪製。 [cite: 127-138]
+   */
   void display() {
     float lifeRatio = lifespan / 255.0; 
-    float alphaFactor = pow(lifeRatio, 1.6); // 讓消失更柔和
+    // 非線性透明度映射，讓消失過程更柔和
+    float alphaFactor = pow(lifeRatio, 1.6); 
     float alpha = map(alphaFactor, 1, 0, 190, 0);
 
     pushStyle();
     noStroke();
 
-    // --- 分支：二氧化碳 (CO2) 專項渲染 ---
-    if (currentAgent == Agent.CO2) {
-      // 1. 高壓噴流核心 (High-Pressure Jet)
-      // 使用 line 繪製運動模糊，但給予漸層寬度
-      float jetW = map(lifeRatio, 1, 0, initialSize, 2);
-      stroke(255, alpha * 0.85); // 核心為實白色
-      strokeWeight(jetW);
-      line(p.x, p.y, prevP.x, prevP.y); 
-
-      // 2. 氣化冷霧雲團 (Expanding Cold Fog)
-      // 門檻設在抵達準心前 (130)，確保穿過準心時已經擴大為氣團
-      if (lifespan < 130) {
-        noStroke();
-        blendMode(SCREEN); // 使用發光疊加模擬氣體質感
-        
-        float fogAlpha = map(alphaFactor, 0.51, 0, 0, alpha * 0.6);
-        // CO2 的特點是膨脹倍率極大 (初段噴流的 15 倍以上)
-        float fogSize  = map(lifeRatio, 0.51, 0, jetW, 100); 
-        
-        fill(220, 240, 255, fogAlpha); // 帶一點極低溫的淡藍色
-        // 多層疊加打破硬邊界
-        ellipse(p.x + mistOffsetX, p.y + mistOffsetY, fogSize, fogSize * 0.85);
-        fill(255, fogAlpha * 0.4); 
-        ellipse(p.x - mistOffsetX * 0.5, p.y - mistOffsetY * 0.5, fogSize * 0.7, fogSize * 0.6);
-        
-        // 加入乾冰昇華產生的細微冰晶閃爍
-        if (splashSize > 0.8) {
-          fill(255, alpha);
-          rect(p.x + splashOffsetX * 5, p.y + splashOffsetY * 5, 2, 2);
-        }
-        blendMode(BLEND);
-      }
-
-    // --- 分支：水粒子 ---
-    } else if (currentAgent == Agent.WATER) {
+    if (currentAgent == Agent.WATER) {
+      // 水柱核心。 [cite: 128-129]
       float w = map(lifeRatio, 1, 0, initialSize * 0.5, initialSize * 2.0);
       color waterCol = lerpColor(WATER_DEEP, WATER_MIST, 1.0 - lifeRatio);
       stroke(waterCol, alpha);
       strokeWeight(w);
       line(p.x, p.y, prevP.x, prevP.y); 
 
+      // 穿過準心後的水霧。 [cite: 147]
       if (lifespan < 125) {
+        noStroke();
         float mAlpha = map(alphaFactor, 0.49, 0, 0, alpha * 0.7);
         float mSize  = map(lifeRatio, 0.49, 0, w, w * 5.5);
         fill(150, 210, 255, mAlpha);
         ellipse(p.x + mistOffsetX, p.y + mistOffsetY, mSize, mSize);
       }
 
-    // --- 分支：乾粉 (ABC Powder) ---
     } else if (currentAgent == Agent.POWDER) {
+      // 乾粉核心
       float coreW = map(lifeRatio, 1, 0, initialSize, initialSize * 0.3);
       stroke(c, alpha * 0.9);
       strokeWeight(coreW);
       line(p.x, p.y, prevP.x, prevP.y); 
 
+      // 乾粉雲團 (SCREEN 混合模式)。 [cite: 130-134]
       if (lifespan < 135) {
-        blendMode(SCREEN); 
+        noStroke();
         float cloudAlpha = map(alphaFactor, 0.53, 0, 0, alpha * 0.5);
         float cloudSize  = map(lifeRatio, 0.53, 0, coreW * 2, coreW * 15); 
         fill(c, cloudAlpha);
         ellipse(p.x + mistOffsetX, p.y + mistOffsetY, cloudSize, cloudSize * 0.9);
-        blendMode(BLEND);
+      }
+
+    } else if (currentAgent == Agent.CO2) {
+      // CO2 高壓噴流
+      float jetW = map(lifeRatio, 1, 0, initialSize, 2);
+      stroke(255, alpha * 0.85);
+      strokeWeight(jetW);
+      line(p.x, p.y, prevP.x, prevP.y); 
+
+      // CO2 低溫冷霧 (穿過準心後劇烈膨脹)。 [cite: 135-138]
+      if (lifespan < 160) {
+        noStroke();
+        float fogAlpha = map(alphaFactor, 0.62, 0, 0, alpha * 0.6);
+        float fogSize  = map(lifeRatio, 0.62, 0, jetW, 150); 
+        fill(255, fogAlpha);
+        ellipse(p.x + mistOffsetX * 0.5, p.y + mistOffsetY * 0.5, fogSize, fogSize * 0.8);
       }
     }
 
@@ -151,6 +148,6 @@ class Particle {
   }
 
   boolean isDead() { 
-    return lifespan <= 0 || p.y > height + 120; 
+    return lifespan <= 0 || p.y > height + 100; 
   } 
 }
