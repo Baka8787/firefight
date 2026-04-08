@@ -117,7 +117,7 @@ void generateParticles(PVector target, float radius) {
   float dx = target.x - emitPos.x;
   float vx0 = dx / dragSum;
 
-  float gravityBias = 0.5; // 落點偏下就調小，偏上就調大
+  float gravityBias = 0.55; // 落點偏下就調小，偏上就調大
   float gravityContrib = gravity * dragSum * flightFrames * gravityBias;
   float dy = target.y - emitPos.y;
   float vy0 = (dy - gravityContrib) / dragSum;
@@ -131,7 +131,9 @@ void generateParticles(PVector target, float radius) {
 //   targetLifespan = constrain(targetLifespan, 60, 400);
 
   int count = int(map(extinguisherPressure, 0, 100, 2, 6));
+  if (currentAgent == Agent.POWDER) count += 2; // 乾粉額外增加粒子數量
   for (int i = 0; i < count; i++) {
+    
     float spreadX = random(-spreadMult, spreadMult);
     float spreadY = random(-spreadMult * 0.5, spreadMult * 0.5);
     PVector v = new PVector(vx0 + spreadX, vy0 + spreadY);
