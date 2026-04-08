@@ -153,6 +153,11 @@ void draw() {
     if (!waterSfx.isPlaying()) {
       waterSfx.play(); 
     }
+  }else {
+    // ---> 新增：沒有按壓（或沒壓力了）時，馬上停止播放 <---
+    if (waterSfx.isPlaying()) {
+      waterSfx.stop();
+    }
   }
   
   // 5. 更新並描繪粒子（關鍵！）
