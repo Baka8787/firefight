@@ -92,50 +92,41 @@ void generateParticles(PVector target, float radius) {
   PVector emitPos = new PVector(emitX, emitY);
 
   if (isPressing()) {
-    lerpNozzleY = lerp(lerpNozzleY, height - 60 + 12, 0.4);
+    // 增加噴射時的視覺後座力抖動
+    lerpNozzleY = lerp(lerpNozzleY, height - 60 + random(10, 15), 0.4);
   }
 
-  float gravity, drag, flightFrames, spreadMult;
+float gravity, drag, flightFrames, spreadMult;
+  
   if (currentAgent == Agent.POWDER) {
-    gravity      = 0.04;
-    drag         = 0.96;
-    flightFrames = 35;
-    spreadMult   = 1.0;
+    gravity = 0.03; drag = 0.97; flightFrames = 35; spreadMult = 1.8;
   } else if (currentAgent == Agent.CO2) {
-    gravity      = 0.02;
-    drag         = 0.94;
-    flightFrames = 28;
-    spreadMult   = 0.6;
+    // 調整 CO2 物理參數
+    gravity = 0.01; 
+    drag = 0.96;         // 稍微提高 drag (阻力變小)，讓氣體飛得更遠
+    flightFrames = 30;   // 與 Particle 建構子對齊
+    spreadMult = 3.0;    // 增加散射，讓雲團更寬
   } else {
-    gravity      = 0.28;
-    drag         = 0.985;
-    flightFrames = 38;
-    spreadMult   = 1.2;
+    gravity = 0.28; drag = 0.985; flightFrames = 38; spreadMult = 1.2;
   }
 
-  float dragSum = (1.0 - pow(drag, flightFrames)) / (1.0 - drag);
-  float dx = target.x - emitPos.x;
-  float vx0 = dx / dragSum;
+  // 數量優化：減少單次生成的倍數，改由單個粒子更大的雲團補償，解決卡頓
+  int baseCount = int(map(extinguisherPressure, 0, 100, 2, 6));
+  int finalCount = baseCount;
+  if (currentAgent == Agent.CO2) finalCount = baseCount * 2; // 從 3 倍降為 2 倍，減少計算量
 
-  float gravityBias = 0.5; // 落點偏下就調小，偏上就調大
-  float gravityContrib = gravity * dragSum * flightFrames * gravityBias;
-  float dy = target.y - emitPos.y;
-  float vy0 = (dy - gravityContrib) / dragSum;
-
-  // 動態 lifespan
-//   float travelDist = dist(emitPos.x, emitPos.y, target.x, target.y);
-//   float decayRate = (currentAgent == Agent.CO2) ? 5.0 : 
-//                     (currentAgent == Agent.POWDER) ? 2.5 : 3.5;
-//   float targetLifespan = flightFrames * decayRate;
-//   targetLifespan *= map(travelDist, 0, dist(0, 0, width, height), 0.6, 1.4);
-//   targetLifespan = constrain(targetLifespan, 60, 400);
-
-  int count = int(map(extinguisherPressure, 0, 100, 2, 6));
-  for (int i = 0; i < count; i++) {
+  for (int i = 0; i < finalCount; i++) {
+    float vVar = random(0.85, 1.15); // 增加速度變異，讓消散更有層次
     float spreadX = random(-spreadMult, spreadMult);
-    float spreadY = random(-spreadMult * 0.5, spreadMult * 0.5);
-    PVector v = new PVector(vx0 + spreadX, vy0 + spreadY);
-    particles.add(new Particle(emitPos.copy(), v, getAgentColor()));
+    float spreadY = random(-spreadMult * 0.7, spreadMult * 0.7);
+    
+    // 計算初始速度
+    float dragSum = (1.0 - pow(drag, flightFrames)) / (1.0 - drag);
+    float vx0 = (target.x - emitPos.x) / dragSum;
+    float gravityContrib = gravity * dragSum * flightFrames * 0.55;
+    float vy0 = ((target.y - emitPos.y) - gravityContrib) / dragSum;
+
+    particles.add(new Particle(emitPos.copy(), new PVector(vx0 * vVar + spreadX, vy0 * vVar + spreadY), getAgentColor()));
   }
 }
 
