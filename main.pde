@@ -67,7 +67,7 @@ class Mission {
 
 Mission[] missions;
 //新加:圖片
-PImage[] missionPics = new PImage[3];
+PImage[] missionPics = new PImage[5];
 
 int selectedMissionIdx = 0;
 
@@ -84,16 +84,19 @@ void setup() {
   waterSfx = new SoundFile(this, "water.mp3");
 
   // 初始化任務陣列 [cite: 99-100]
-  missions = new Mission[3];
-  missions[0] = new Mission("一般火災演練", FireType.GENERAL, 120, 100, "撲滅 A 類普通火災（木材、紙張）");
-  missions[1] = new Mission("電器火災挑戰", FireType.ELECTRICAL, 90, 80, "注意！嚴禁使用水基滅火劑");
-  missions[2] = new Mission("緊急複合演練", FireType.GENERAL, 60, 150, "高難度：火勢蔓延極快");
-  
-  // ---> 新增：載入任務對應的圖片 <---
-  // 記得將副檔名改成您實際的格式 (如 .png 或 .jpg)
+  missions = new Mission[5];
+  missions[0] = new Mission("普通火災演練", FireType.GENERAL, 120, 100, "撲滅A類普通火災（木材、紙張）");
+  missions[1] = new Mission("電器火災挑戰", FireType.ELECTRICAL, 90, 80, "電氣火災嚴禁使用水基滅火劑");
+  missions[2] = new Mission("油類火災挑戰", FireType.GENERAL, 60, 150, "撲滅B類油類火災");
+  missions[3] = new Mission("金屬火災演練", FireType.ELECTRICAL, 80, 120, "高難度:涉及活性金屬，禁水性物質");
+  missions[4] = new Mission("緊急複合演練", FireType.GENERAL, 150, 200, "高難度：氣爆後火勢蔓延極快");
+
+  // ---> 關鍵修改：載入 5 張圖片 <---
   missionPics[0] = loadImage("pic0.jpg"); 
   missionPics[1] = loadImage("pic1.jpg");
   missionPics[2] = loadImage("pic2.jpg");
+  missionPics[3] = loadImage("pic3.jpg"); // 新增
+  missionPics[4] = loadImage("pic4.jpg"); // 新增
 
   firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
   targetPos = new PVector(width/2, height/2);

@@ -10,28 +10,33 @@ void drawMissionSelectScreen() {
   // 標題
   fill(255);
   textSize(32);
-  text("請選擇訓練任務", width/2, 100);
-  
-  // 任務卡片繪製
+  text("請選擇訓練任務", width/2, 80); // 標題稍微往上移一點 (100 -> 80)
+
+  // 任務卡片繪製 [cite: 181]
   for (int i = 0; i < missions.length; i++) {
     float x = width/2;
-    float y = 250 + i * 120;
+    
+    // ---> 關鍵修改：調整卡片的起始高度與間隔 <---
+    // 原本是 250 + i * 120
+    // 現在改成從 Y=180 開始，每個間距 105
+    float y = 180 + i * 105; 
     
     // 選中效果
     if (i == selectedMissionIdx) {
       fill(0, 150, 255, 100);
       stroke(0, 200, 255);
       strokeWeight(3);
-      rect(x - 250, y - 50, 500, 100, 15);
+      // 卡片高度也稍微縮減一點點 (100 -> 90) 讓視覺更輕盈
+      rect(x - 250, y - 45, 500, 90, 15);
     } else {
       fill(60);
       noStroke();
-      rect(x - 250, y - 50, 500, 100, 15);
+      rect(x - 250, y - 45, 500, 90, 15);
     }
     
     fill(255);
     textSize(22);
-    text(missions[i].name, x, y - 15);
+    text(missions[i].name, x, y - 10);
     textSize(14);
     fill(200);
     text(missions[i].description, x, y + 20);
@@ -40,7 +45,7 @@ void drawMissionSelectScreen() {
   // 操作提示
   fill(255, 200, 0);
   textSize(16);
-  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 開始演練", width/2, height - 80);
+  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 開始演練", width/2, height - 50); // 提示也微調往下放
   popStyle();
 }
 
