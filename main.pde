@@ -66,8 +66,31 @@ class Mission {
 }
 
 Mission[] missions;
+
+
 //新加:圖片
 PImage[] missionPics = new PImage[5];
+PImage[][] furniturePics = new PImage[5][5];      // 5個任務，每個任務5個家具
+PVector[][] furniturePositions = new PVector[5][5]; // 紀錄每個家具的 X, Y 座標
+// 新增：集中管理 25 個家具的精確座標 {X, Y}
+// 結構為：manualCoords[任務編號][家具編號][0是X, 1是Y]
+float[][][] manualCoords = {
+  // 任務 0 (pic0) 的 5 個家具座標 {x, y}
+  { {880, 400}, {300, 176}, {650, 400}, {500, 600}, {110, 450} },
+  
+  // 任務 1 (pic1) 的 5 個家具座標
+  { {850, 250}, {1140, 410}, {650, 400}, {200, 100}, {120, 400} },
+  
+  // 任務 2 (pic2) 的 5 個家具座標
+  { {136, 476}, {300, 350}, {550, 300}, {1100, 476}, {750, 300} },
+  
+  // 任務 3 (pic3) 的 5 個家具座標
+  { {1150, 300}, {150, 226}, {1000, 450}, {750, 500}, {300, 450} },
+  
+  // 任務 4 (pic4) 的 5 個家具座標
+  { {250, 500}, {500, 520}, {850, 550}, {400, 350}, {980, 380} }
+};
+
 
 int selectedMissionIdx = 0;
 
@@ -97,6 +120,19 @@ void setup() {
   missionPics[2] = loadImage("pic2.jpg");
   missionPics[3] = loadImage("pic3.jpg"); // 新增
   missionPics[4] = loadImage("pic4.jpg"); // 新增
+  
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      // 載入圖片 (01.png ~ 45.png)
+      String fileName = nf(i * 10 + (j + 1), 2) + ".png"; 
+      furniturePics[i][j] = loadImage(fileName);
+      
+      // ---> 關鍵修改：讀取我們手動設定好的陣列座標 <---
+      float x = manualCoords[i][j][0];
+      float y = manualCoords[i][j][1];
+      furniturePositions[i][j] = new PVector(x, y);
+    }
+  }
 
   firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
   targetPos = new PVector(width/2, height/2);
