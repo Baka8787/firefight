@@ -312,14 +312,21 @@ void initializeSelectedMission() {
   fireHealth = m.initialHealth;
   extinguisherPressure = 100.0f; 
   
-  // 重新配置火源位置
-  firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
+  // ---> 關鍵修改：從該任務的 5 個家具中，隨機抽選一個作為起火點 <---
+  // random(5) 會產生 0.0 ~ 4.999 的小數，用 int() 轉換後就會變成 0, 1, 2, 3, 4
+  int randomIdx = int(random(5)); 
   
-  // 清理殘留粒子 [cite: 111]
+  // 取得抽中的家具 X, Y 座標
+  float targetX = manualCoords[selectedMissionIdx][randomIdx][0];
+  float targetY = manualCoords[selectedMissionIdx][randomIdx][1];
+  
+  // 設定火源位置 (小技巧：Y 軸稍微扣掉一點數值，讓火源看起來是從家具"上方"燒起來的，而不是被家具擋住一半)
+  firePos = new PVector(targetX, targetY - 30); 
+  
+  // 清理殘留粒子
   particles.clear();
   fireParticles.clear();
 }
-
 /**
  * 輔助函數：重置系統至初始狀態
  */
