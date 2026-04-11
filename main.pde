@@ -55,13 +55,12 @@ float lerpNozzleX, lerpNozzleY; // 平滑後的噴嘴座標
 // 任務配置結構
 class Mission {
   String name;
-  FireType type;
   int timeLimit;
   float initialHealth;
   String description;
-
-  Mission(String n, FireType t, int time, float hp, String desc) {
-    name = n; type = t; timeLimit = time; initialHealth = hp; description = desc;
+  
+  Mission(String n, int time, float hp, String desc) {
+    name = n; timeLimit = time; initialHealth = hp; description = desc;
   }
 }
 
@@ -70,7 +69,7 @@ Mission[] missions;
 
 //新加:圖片
 PImage[] missionPics = new PImage[5];
-PImage[][] furniturePics = new PImage[5][5];      // 5個任務，每個任務5個家具
+
 PVector[][] furniturePositions = new PVector[5][5]; // 紀錄每個家具的 X, Y 座標
 // 新增：集中管理 25 個家具的精確座標 {X, Y}
 // 結構為：manualCoords[任務編號][家具編號][0是X, 1是Y]
@@ -91,6 +90,20 @@ float[][][] manualCoords = {
   { {250, 550}, {600, 510}, {800, 450}, {400, 450}, {1100, 530} }
 };
 
+FireType[][] manualFireTypes = {
+  // 任務 0 (對應上面的 5 個點：普通, 電器, 普通, 普通, 電器)
+  { FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL },
+  // 任務 1
+  { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
+  // 任務 2
+  { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
+  // 任務 3
+  { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
+  // 任務 4
+  { FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL }
+};
+
+
 
 int selectedMissionIdx = 0;
 
@@ -108,11 +121,11 @@ void setup() {
 
   // 初始化任務陣列 [cite: 99-100]
   missions = new Mission[5];
-  missions[0] = new Mission("普通火災演練", FireType.GENERAL, 120, 100, "撲滅A類普通火災（木材、紙張）");
-  missions[1] = new Mission("電器火災挑戰", FireType.ELECTRICAL, 90, 80, "電氣火災嚴禁使用水基滅火劑");
-  missions[2] = new Mission("油類火災挑戰", FireType.GENERAL, 60, 150, "撲滅B類油類火災");
-  missions[3] = new Mission("金屬火災演練", FireType.ELECTRICAL, 80, 120, "高難度:涉及活性金屬，禁水性物質");
-  missions[4] = new Mission("緊急複合演練", FireType.GENERAL, 150, 200, "高難度：氣爆後火勢蔓延極快");
+  missions[0] = new Mission("普通火災演練", 120, 100, "撲滅A類普通火災（木材、紙張）");
+  missions[1] = new Mission("電器火災挑戰", 90, 80, "電氣火災嚴禁使用水基滅火劑");
+  missions[2] = new Mission("油類火災挑戰",  60, 150, "撲滅B類油類火災");
+  missions[3] = new Mission("金屬火災演練",  80, 120, "高難度:涉及活性金屬，禁水性物質");
+  missions[4] = new Mission("緊急複合演練", 150, 200, "高難度：氣爆後火勢蔓延極快");
 
   // ---> 關鍵修改：載入 5 張圖片 <---
   missionPics[0] = loadImage("pic0.jpg"); 
@@ -124,8 +137,6 @@ void setup() {
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 5; j++) {
       // 載入圖片 (01.png ~ 45.png)
-      String fileName = nf(i * 10 + (j + 1), 2) + ".png"; 
-      furniturePics[i][j] = loadImage(fileName);
       
       // ---> 關鍵修改：讀取我們手動設定好的陣列座標 <---
       float x = manualCoords[i][j][0];
@@ -307,23 +318,22 @@ void keyPressed() {
  */
 void initializeSelectedMission() {
   Mission m = missions[selectedMissionIdx];
-  currentFireType = m.type;
   remainingTime = m.timeLimit;
   fireHealth = m.initialHealth;
   extinguisherPressure = 100.0f; 
   
-  // ---> 關鍵修改：從該任務的 5 個家具中，隨機抽選一個作為起火點 <---
-  // random(5) 會產生 0.0 ~ 4.999 的小數，用 int() 轉換後就會變成 0, 1, 2, 3, 4
+  // 1. 從 0 到 4 隨機抽籤 (決定這次燒哪個位置)
   int randomIdx = int(random(5)); 
   
-  // 取得抽中的家具 X, Y 座標
+  // 2. 依據抽籤結果，讀取並設定火災類型 (GENERAL 或 ELECTRICAL)
+  currentFireType = manualFireTypes[selectedMissionIdx][randomIdx];
+  
+  // 3. 依據抽籤結果，讀取並設定火源座標 (Y軸減30讓火往上飄一點)
   float targetX = manualCoords[selectedMissionIdx][randomIdx][0];
   float targetY = manualCoords[selectedMissionIdx][randomIdx][1];
-  
-  // 設定火源位置 (小技巧：Y 軸稍微扣掉一點數值，讓火源看起來是從家具"上方"燒起來的，而不是被家具擋住一半)
   firePos = new PVector(targetX, targetY - 30); 
   
-  // 清理殘留粒子
+  // 4. 清理前一次的殘留粒子
   particles.clear();
   fireParticles.clear();
 }

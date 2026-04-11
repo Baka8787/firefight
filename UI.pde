@@ -60,19 +60,6 @@ void drawpictures(){
     tint(255, 150); 
     image(currentBg, 0, 0, width, height);
     
-    // ---> 新增：畫上對應的 5 個家具素材 <---
-    noTint();          // 家具通常不需要變暗，恢復正常亮度
-    imageMode(CENTER); // 改用中心點對齊，方便排版與日後加上火源
-    
-    for (int j = 0; j < 5; j++) {
-      PImage fPic = furniturePics[selectedMissionIdx][j];
-      PVector fPos = furniturePositions[selectedMissionIdx][j];
-      
-      if (fPic != null) {
-        // 這裡直接畫出家具，若家具圖太大，可以加上寬高參數縮放：image(fPic, fPos.x, fPos.y, 寬, 高);
-        image(fPic, fPos.x, fPos.y); 
-      }
-    }
     
     popStyle();
   }
