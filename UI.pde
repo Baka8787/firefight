@@ -335,7 +335,7 @@ void drawResultScreen() {
  */
 void drawInstructionsScreen() {
   pushStyle();
-  // 畫一個半透明黑底，蓋在原本的畫面上，讓文字更清晰
+  // 畫一個半透明黑底，蓋在原本的畫面上
   fill(0, 0, 0, 230); 
   rect(0, 0, width, height);
 
@@ -343,47 +343,64 @@ void drawInstructionsScreen() {
   fill(255);
   textAlign(CENTER, TOP);
   textSize(40);
-  text("【 消 防 演 練 指 南 】", width/2, 80);
+  text("【 消 防 演 練 指 南 】", width/2, 60);
 
   // --- 內容排版設定 ---
   textAlign(LEFT, TOP);
-  textSize(24);
-  float startX = width/2 - 350;
-  float startY = 180;
-  int lineSpace = 45;
+  textSize(22); // 稍微縮小字體以容納更多內容
+  float startX = width/2 - 380;
+  float startY = 140;
+  float lineSpace = 40;
 
-  // --- 說明文字區 ---
+  // --- 1. 觀察目標 ---
   fill(255);
-  text("1. 選擇任務後，請仔細觀察背景畫面中的", startX, startY);
+  text("1. 選擇任務後，請觀察背景中的", startX, startY);
   fill(255, 100, 100);
-  text("起火點位置", startX + 460, startY);
+  text("起火點位置與火災類型", startX + 330, startY);
   
+  // --- 2. 火災分類與藥劑 (更新版) ---
   fill(255);
-  text("2. 判斷火災類型與選用滅火器：", startX, startY + lineSpace * 1.5f);
+  text("2. 判斷火災類型並選用正確藥劑：", startX, startY + lineSpace * 1.5f);
   
+  // A類
   fill(255, 200, 100);
-  text("   ▶ 普通火災 (沙發、木櫃等)：", startX, startY + lineSpace * 2.5f);
+  text("   ▶ 普通火災 (木材、紙張)：", startX, startY + lineSpace * 2.5f);
   fill(200);
-  text("可使用任何種類滅火器", startX + 380, startY + lineSpace * 2.5f);
+  text("推薦使用 水、乾粉", startX + 380, startY + lineSpace * 2.5f);
   
+  // C類 (依據你的設定：水、CO2)
   fill(100, 200, 255);
-  text("   ▶ 電器火災 (電視、電箱等)：", startX, startY + lineSpace * 3.5f);
+  text("   ▶ 電器火災 (插座、電箱)：", startX, startY + lineSpace * 3.5f);
   fill(255, 50, 50);
-  text("嚴禁用水！請切換乾粉或 CO2", startX + 380, startY + lineSpace * 3.5f);
+  text("推薦使用 水、CO2", startX + 380, startY + lineSpace * 3.5f);
 
-  fill(255);
-  text("3. 基礎操作方式：", startX, startY + lineSpace * 5.5f);
+  // B類 (油類火災) - 新增
+  fill(255, 150, 50);
+  text("   ▶ 油類火災 (廚房油鍋)：", startX, startY + lineSpace * 4.5f);
   fill(200);
-  text("   - 瞄準：移動滑鼠將準心對準火源根部", startX, startY + lineSpace * 6.5f);
-  text("   - 噴灑：按住滑鼠左鍵", startX, startY + lineSpace * 7.5f);
-  text("   - 切換：鍵盤按 1 (水) / 2 (乾粉) / 3 (CO2)", startX, startY + lineSpace * 8.5f);
+  text("推薦使用 水、CO2", startX + 380, startY + lineSpace * 4.5f);
+
+  // D類 (金屬火災) - 新增
+  fill(200, 100, 255);
+  text("   ▶ 金屬火災 (活性金屬)：", startX, startY + lineSpace * 5.5f);
+  fill(255, 255, 0);
+  text("⚠️ 必須使用金屬專用藥劑", startX + 380, startY + lineSpace * 5.5f);
+
+  // --- 3. 操作方式 (更新按鍵 4) ---
+  fill(255);
+  text("3. 基礎操作方式：", startX, startY + lineSpace * 7.5f);
+  fill(200);
+  text("   - 瞄準：移動滑鼠將準心對準火源根部", startX, startY + lineSpace * 8.5f);
+  text("   - 噴灑：按住滑鼠左鍵進行滅火", startX, startY + lineSpace * 9.5f);
+  
+  fill(0, 255, 255);
+  text("   - 切換：按 1(水) / 2(乾粉) / 3(CO2) / 4(金屬藥劑)", startX, startY + lineSpace * 10.5f);
 
   // --- 底部返回提示 ---
-  // 完美沿用你的設定：按 R 鍵回主畫面
   fill(0, 255, 100);
   textAlign(CENTER, BOTTOM);
   textSize(22);
-  text("按 [R] 鍵返回主畫面", width/2, height - 50);
+  text("按 [R] 鍵返回主畫面", width/2, height - 40);
 
   popStyle();
 }
