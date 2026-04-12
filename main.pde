@@ -97,11 +97,11 @@ FireType[][] manualFireTypes = {
   // 任務 1
   { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
   // 任務 2
-  { FireType.OIL, FireType.OIL, FireType.OIL, FireType.OIL, FireType.OIL },
+  { FireType.OIL, FireType.OIL, FireType.OIL, FireType.GENERAL, FireType.GENERAL },
   // 任務 3
   { FireType.METAL, FireType.METAL, FireType.METAL, FireType.METAL, FireType.METAL },
   // 任務 4
-  { FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL }
+  { FireType.GENERAL, FireType.ELECTRICAL, FireType.OIL, FireType.GENERAL, FireType.ELECTRICAL }
 };
 
 
