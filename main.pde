@@ -10,7 +10,7 @@ SoundFile bgm;
 SoundFile waterSfx;
 
 // 系統狀態定義
-enum State { START, SELECT_MISSION, PLAYING, RESULT }
+enum State { START, SELECT_MISSION, PLAYING, RESULT ,INSTRUCTIONS}
 enum FireType { GENERAL, ELECTRICAL }
 enum Agent { WATER, POWDER, CO2 } 
 State currentState = State.START;
@@ -158,6 +158,7 @@ void draw() {
     case SELECT_MISSION: drawMissionSelectScreen(); break; // 新增狀態
     case PLAYING: updateSimulation(); drawGameUI(); break;
     case RESULT: drawResultScreen(); break;
+    case INSTRUCTIONS: drawInstructionsScreen(); break;
   }
 }
 
@@ -269,9 +270,12 @@ void updateTimer() {
 /**
  * 處理鍵盤輸入邏輯：支援狀態切換、任務選擇與藥劑控制
  */
+// === main.pde ===
+
 void keyPressed() {
   int now = millis();
-
+  
+  // 維持原設定：R 鍵無條件回到主畫面 (START)
   if (key == 'r' || key == 'R') {
     resetToStart();
     return;
@@ -281,29 +285,38 @@ void keyPressed() {
     case START:
       currentState = State.SELECT_MISSION;
       break;
-
+      
     case SELECT_MISSION:
+      // ---> 關鍵修改：選單總共有 6 個選項 (5個任務 + 1個說明) <---
+      int totalOptions = missions.length + 1; 
+      
       if (keyCode == UP) {
-        selectedMissionIdx = (selectedMissionIdx - 1 + missions.length) % missions.length;
+        selectedMissionIdx = (selectedMissionIdx - 1 + totalOptions) % totalOptions;
       } 
       else if (keyCode == DOWN) {
-        selectedMissionIdx = (selectedMissionIdx + 1) % missions.length;
+        selectedMissionIdx = (selectedMissionIdx + 1) % totalOptions;
       } 
-      else if (key == ENTER) {
-        initializeSelectedMission();
-        currentState = State.PLAYING;
-        lastTimeUpdate = millis();
+      else if (key == ENTER || key == RETURN) {
         
-       
-        if (bgm.isPlaying()) {
-          bgm.stop();
+        // 判斷按 Enter 時，玩家停在哪個選項上
+        if (selectedMissionIdx < missions.length) {
+          // 如果選的是 0~4，進入一般訓練任務
+          initializeSelectedMission();
+          currentState = State.PLAYING;
+          lastTimeUpdate = millis();
+          if (bgm.isPlaying()) bgm.stop();
+        } 
+        else {
+          // 如果選的是 5 (也就是最後一個選項)，進入說明畫面
+          currentState = State.INSTRUCTIONS;
         }
-        
       }
       break;
 
+    // (INSTRUCTIONS 狀態不需要寫，因為 R 鍵會把它帶回 START)
+      
     case PLAYING:
-      // 藥劑切換邏輯
+      // (藥劑切換邏輯保留...)
       if (now - lastAgentSwitch > agentSwitchCooldown) {
         if (key == '1') { currentAgent = Agent.WATER; lastAgentSwitch = now; }
         else if (key == '2') { currentAgent = Agent.POWDER; lastAgentSwitch = now; }

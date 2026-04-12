@@ -7,47 +7,67 @@ void drawMissionSelectScreen() {
   pushStyle();
   textAlign(CENTER, CENTER);
   
-  // 標題
+  // 1. 標題：稍微再往上移一點，騰出空間給下方的卡片
   fill(255);
   textSize(32);
-  text("請選擇訓練任務", width/2, 80); // 標題稍微往上移一點 (100 -> 80)
+  text("請選擇訓練任務", width/2, 60); 
 
-  // 任務卡片繪製 [cite: 181]
+  // 2. 任務卡片繪製 (前 5 個一般任務)
   for (int i = 0; i < missions.length; i++) {
     float x = width/2;
     
-    // ---> 關鍵修改：調整卡片的起始高度與間隔 <---
-    // 原本是 250 + i * 120
-    // 現在改成從 Y=180 開始，每個間距 105
-    float y = 180 + i * 105; 
-    
+    // ---> 關鍵修改：起始高度改為 130，間隔縮小為 85 <---
+    float y = 130 + i * 85; 
+
     // 選中效果
     if (i == selectedMissionIdx) {
       fill(0, 150, 255, 100);
       stroke(0, 200, 255);
       strokeWeight(3);
-      // 卡片高度也稍微縮減一點點 (100 -> 90) 讓視覺更輕盈
-      rect(x - 250, y - 45, 500, 90, 15);
     } else {
       fill(60);
       noStroke();
-      rect(x - 250, y - 45, 500, 90, 15);
     }
+    
+    // 卡片高度也稍微縮減為 75，讓視覺更輕盈不擁擠
+    rect(x - 250, y - 37, 500, 75, 15);
     
     fill(255);
     textSize(22);
     text(missions[i].name, x, y - 10);
     textSize(14);
     fill(200);
-    text(missions[i].description, x, y + 20);
+    text(missions[i].description, x, y + 15);
   }
   
-  // 操作提示
+  // 3. ---> 新增：畫出第 6 個選項（遊戲說明指南） <---
+  int instructionIdx = missions.length; // 它的索引值會是 5
+  float instX = width/2;
+  float instY = 130 + instructionIdx * 85; // 套用跟上面一樣的間距公式
+
+  // 說明的選中效果 (用專屬的黃色高亮，跟任務做區分)
+  if (instructionIdx == selectedMissionIdx) {
+    fill(255, 200, 0, 100); 
+    stroke(255, 200, 0);
+    strokeWeight(3);
+  } else {
+    fill(60);
+    noStroke();
+  }
+  rect(instX - 250, instY - 37, 500, 75, 15);
+
+  fill(255, 200, 0);
+  textSize(22);
+  text("📖 遊戲說明指南", instX, instY);
+
+  // 4. 操作提示 (稍微往下放一點，並改為確認)
   fill(255, 200, 0);
   textSize(16);
-  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 開始演練", width/2, height - 50); // 提示也微調往下放
+  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 確認", width/2, height - 30); 
+
   popStyle();
 }
+
 
 // === UI.pde ===
 void drawpictures(){
@@ -246,5 +266,63 @@ void drawResultScreen() {
   }
   textSize(14);
   text("按 R 鍵重新開始", width/2, height - 60);
+  popStyle();
+}
+
+/**
+ * 繪製遊戲說明畫面
+ */
+void drawInstructionsScreen() {
+  pushStyle();
+  // 畫一個半透明黑底，蓋在原本的畫面上，讓文字更清晰
+  fill(0, 0, 0, 230); 
+  rect(0, 0, width, height);
+
+  // --- 標題區 ---
+  fill(255);
+  textAlign(CENTER, TOP);
+  textSize(40);
+  text("【 消 防 演 練 指 南 】", width/2, 80);
+
+  // --- 內容排版設定 ---
+  textAlign(LEFT, TOP);
+  textSize(24);
+  float startX = width/2 - 350;
+  float startY = 180;
+  int lineSpace = 45;
+
+  // --- 說明文字區 ---
+  fill(255);
+  text("1. 選擇任務後，請仔細觀察背景畫面中的", startX, startY);
+  fill(255, 100, 100);
+  text("起火點位置", startX + 460, startY);
+  
+  fill(255);
+  text("2. 判斷火災類型與選用滅火器：", startX, startY + lineSpace * 1.5);
+  
+  fill(255, 200, 100);
+  text("   ▶ 普通火災 (沙發、木櫃等)：", startX, startY + lineSpace * 2.5);
+  fill(200);
+  text("可使用任何種類滅火器", startX + 380, startY + lineSpace * 2.5);
+  
+  fill(100, 200, 255);
+  text("   ▶ 電器火災 (電視、電箱等)：", startX, startY + lineSpace * 3.5);
+  fill(255, 50, 50);
+  text("嚴禁用水！請切換乾粉或 CO2", startX + 380, startY + lineSpace * 3.5);
+
+  fill(255);
+  text("3. 基礎操作方式：", startX, startY + lineSpace * 5.5);
+  fill(200);
+  text("   - 瞄準：移動滑鼠將準心對準火源根部", startX, startY + lineSpace * 6.5);
+  text("   - 噴灑：按住滑鼠左鍵", startX, startY + lineSpace * 7.5);
+  text("   - 切換：鍵盤按 1 (水) / 2 (乾粉) / 3 (CO2)", startX, startY + lineSpace * 8.5);
+
+  // --- 底部返回提示 ---
+  // 完美沿用你的設定：按 R 鍵回主畫面
+  fill(0, 255, 100);
+  textAlign(CENTER, BOTTOM);
+  textSize(22);
+  text("按 [R] 鍵返回主畫面", width/2, height - 50);
+
   popStyle();
 }
