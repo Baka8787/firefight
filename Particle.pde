@@ -32,12 +32,19 @@ class Particle {
     float decayVar = random(0.85, 1.15);
 
     // 2. 根據藥劑類型設定尺寸與衰減速率（需與 generateParticles 幀數對齊）。 [cite: 116, 124-126]
+    // === Particle.pde ===
+
+    // 找到 Particle 建構子裡面的這段，補上 METAL：
     if (currentAgent == Agent.POWDER) {
       this.initialSize = random(8, 12);
       this.lifespanDecay = (255.0 / (35.0 * lifeBuffer)) * decayVar; 
     } else if (currentAgent == Agent.CO2) {
-      this.initialSize = 20; // 增加初段寬度以符合喇叭管視覺
-      this.lifespanDecay = (255.0 / (30.0 * lifeBuffer)) * decayVar; // 對齊 30 幀
+      this.initialSize = 20;
+      this.lifespanDecay = (255.0 / (30.0 * lifeBuffer)) * decayVar;
+    // ---> 新增：METAL 粒子的尺寸與衰減 <---
+    } else if (currentAgent == Agent.METAL) {
+      this.initialSize = random(10, 15);
+      this.lifespanDecay = (255.0 / (32.0 * lifeBuffer)) * decayVar;
     } else {
       this.initialSize = random(6, 14);
       this.lifespanDecay = (255.0 / (38.0 * lifeBuffer)) * decayVar;
@@ -56,20 +63,24 @@ class Particle {
   /**
    * 更新物理狀態。 [cite: 117-123]
    */
-  void update() {
+void update() {
     prevP.set(p);
 
     if (currentAgent == Agent.WATER) {
       v.y += 0.28; 
       v.mult(0.985);
-    } else if (currentAgent == Agent.POWDER) {
-      v.y += 0.03; 
+      
+    // ---> 關鍵修改：把 METAL 加進來，並根據藥劑給予不同重力 <---
+    } else if (currentAgent == Agent.POWDER || currentAgent == Agent.METAL) {
+      // 金屬粉末比較重 (0.05)，一般乾粉較輕 (0.03)
+      v.y += (currentAgent == Agent.METAL) ? 0.05 : 0.03; 
       v.mult(0.965); 
-      // 模擬粉塵在空氣中的晃動。 [cite: 120-121]
+      // 模擬粉塵在空氣中的晃動
       v.x += (noise(driftSeed, frameCount * 0.05) - 0.5) * 0.9;
+      
     } else if (currentAgent == Agent.CO2) {
       v.mult(0.96); // 降低阻力，讓氣體噴射感更扎實
-      v.y -= 0.02;  // 氣體受熱輕微上浮。 [cite: 123]
+      v.y -= 0.02;  // 氣體受熱輕微上浮
     }
 
     // 末端動能衰減：產生自然的下墜弧度
@@ -111,7 +122,7 @@ class Particle {
         ellipse(p.x + mistOffsetX, p.y + mistOffsetY, mSize, mSize);
       }
 
-    } else if (currentAgent == Agent.POWDER) {
+    } else if (currentAgent == Agent.POWDER || currentAgent == Agent.METAL) {
       // 乾粉核心
       float coreW = map(lifeRatio, 1, 0, initialSize, initialSize * 0.3);
       stroke(c, alpha * 0.9);

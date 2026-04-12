@@ -11,8 +11,8 @@ SoundFile waterSfx;
 
 // 系統狀態定義
 enum State { START, SELECT_MISSION, PLAYING, RESULT ,INSTRUCTIONS}
-enum FireType { GENERAL, ELECTRICAL }
-enum Agent { WATER, POWDER, CO2 } 
+enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
+enum Agent { WATER, POWDER, CO2, METAL }
 State currentState = State.START;
 
 // 字型宣告
@@ -33,8 +33,9 @@ int lastTimeUpdate = 0;             // 上次更新時間（毫秒）
 
 // 任務與類型
 FireType currentFireType = FireType.GENERAL;  // 當前火源類型
-String[] agentNames = {"Water (水)", "ABC Powder (乾粉)", "CO2"};
-float[] agentRadiusBonus = {1.0f, 0.9f, 1.1f};  // 各填充物的半徑係數
+// 2. 更新藥劑名稱陣列 (加入金屬滅火劑)
+String[] agentNames = {"Water (水)", "ABC Powder (乾粉)", "CO2", "金屬專用滅火劑"};
+float[] agentRadiusBonus = {1.0f, 0.9f, 1.1f, 1.0f}; // 補上第4個的半徑係數
 
 // 粒子系統 (模擬滅火介質)
 ArrayList<Particle> particles = new ArrayList<Particle>();
@@ -96,9 +97,9 @@ FireType[][] manualFireTypes = {
   // 任務 1
   { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
   // 任務 2
-  { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
+  { FireType.OIL, FireType.OIL, FireType.OIL, FireType.OIL, FireType.OIL },
   // 任務 3
-  { FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL, FireType.ELECTRICAL },
+  { FireType.METAL, FireType.METAL, FireType.METAL, FireType.METAL, FireType.METAL },
   // 任務 4
   { FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL, FireType.GENERAL }
 };
@@ -316,11 +317,12 @@ void keyPressed() {
     // (INSTRUCTIONS 狀態不需要寫，因為 R 鍵會把它帶回 START)
       
     case PLAYING:
-      // (藥劑切換邏輯保留...)
       if (now - lastAgentSwitch > agentSwitchCooldown) {
         if (key == '1') { currentAgent = Agent.WATER; lastAgentSwitch = now; }
         else if (key == '2') { currentAgent = Agent.POWDER; lastAgentSwitch = now; }
         else if (key == '3') { currentAgent = Agent.CO2; lastAgentSwitch = now; }
+        // ---> 新增：按 4 切換為金屬滅火劑 <---
+        else if (key == '4') { currentAgent = Agent.METAL; lastAgentSwitch = now; }
       }
       break;
   }

@@ -51,41 +51,56 @@ void updateFireParticles() {
 }
 
 
+// === FireSim.pde ===
+
 void checkExtinguishByCrosshair() {
   float d = dist(crosshairPos.x, crosshairPos.y, firePos.x, firePos.y);
-
-  // 準心必須在這個範圍內才算對準
   float aimRadius = sprayRadius * 0.8;
-  if (d > aimRadius) return; // 沒對準，直接不造成傷害
+  if (d > aimRadius) return;
 
-  // 距離衰減：正中心傷害最高
-  float distFactor = 1.0 - (d / aimRadius);
-  distFactor = pow(distFactor, 1.5); // 稍微收斂，避免邊緣太容易觸發
+  // 1. 距離衰減與高度判定 (維持原樣)
+  float distFactor = pow(1.0 - (d / aimRadius), 1.5);
+  float heightPenalty = 0.4;
+  if (crosshairPos.y >= firePos.y - 30 && crosshairPos.y <= firePos.y + 30) heightPenalty = 1.0;
+  else if (crosshairPos.y < firePos.y - 30) heightPenalty = 0.1;
 
-  // 根部判定：準心 Y 軸要接近火源根部
-  float heightPenalty;
-  if (crosshairPos.y >= firePos.y - 30 && crosshairPos.y <= firePos.y + 30) {
-    heightPenalty = 1.0;  // 根部命中
-  } else if (crosshairPos.y < firePos.y - 30) {
-    heightPenalty = 0.1;  // 打太高，幾乎無效
-  } else {
-    heightPenalty = 0.4;  // 打太低
+  // ---> 2. 藥劑匹配邏輯 (完全依照您的設定) <---
+  float effectiveMult = 0.0; // 0 代表無效或懲罰，大於 0 代表有效
+
+  switch(currentFireType) {
+    case GENERAL:
+      // GENERAL 只能用 WATER, POWDER
+      if (currentAgent == Agent.WATER || currentAgent == Agent.POWDER) effectiveMult = 1.0;
+      break;
+      
+    case ELECTRICAL:
+      // ELECTRICAL 只能用 WATER, CO2 (依照您的指示)
+      if (currentAgent == Agent.WATER || currentAgent == Agent.CO2) effectiveMult = 1.0;
+      else effectiveMult = -0.5; // 用錯藥劑稍微扣分(火勢變大)
+      break;
+      
+    case OIL:
+      // OIL 只能用 WATER, CO2 (依照您的指示)
+      if (currentAgent == Agent.WATER || currentAgent == Agent.CO2) effectiveMult = 1.0;
+      break;
+      
+    case METAL:
+      // METAL 只能用 METAL
+      if (currentAgent == Agent.METAL) effectiveMult = 1.0;
+      break;
   }
 
-  // 藥劑匹配
-  float damage;
-  if (currentFireType == FireType.ELECTRICAL && currentAgent == Agent.WATER) {
-    damage = -0.3 * distFactor; // 懲罰
-  } else if (currentAgent == Agent.POWDER) {
-    damage = 0.5 * distFactor * heightPenalty;
-  } else if (currentAgent == Agent.CO2) {
-    float baseEff = (currentFireType == FireType.ELECTRICAL) ? 1.0 : 0.45;
-    damage = baseEff * distFactor * heightPenalty;
-  } else {
-    damage = 0.7 * distFactor * heightPenalty;
+  // 3. 計算最終傷害並扣血
+  // 如果 effectiveMult > 0，則根據距離和高度造成傷害；否則造成負面效果或 0
+  float baseDamage = 0.7;
+  float finalDamage = baseDamage * effectiveMult * distFactor * heightPenalty;
+  
+  fireHealth = constrain(fireHealth - finalDamage, 0, 100);
+  
+  // 如果用錯藥劑導致傷害是負的，可以觸發震動提示玩家
+  if (finalDamage < 0) {
+    shakeScreen();
   }
-
-  fireHealth = constrain(fireHealth - damage, 0, 100);
 }
 
 /**

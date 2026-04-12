@@ -106,7 +106,13 @@ float gravity, drag, flightFrames, spreadMult;
     drag = 0.96;         // 稍微提高 drag (阻力變小)，讓氣體飛得更遠
     flightFrames = 30;   // 與 Particle 建構子對齊
     spreadMult = 3.0;    // 增加散射，讓雲團更寬
+    
+  // ---> 關鍵新增：加上 METAL 藥劑的物理特性 <---
+  } else if (currentAgent == Agent.METAL) {
+    gravity = 0.05; drag = 0.965; flightFrames = 32; spreadMult = 1.5;
+    
   } else {
+    // 預設 (WATER 水)
     gravity = 0.28; drag = 0.985; flightFrames = 38; spreadMult = 1.2;
   }
 
@@ -138,6 +144,8 @@ color getAgentColor() {
     case WATER:  return color(100, 200, 255, 150);
     case POWDER: return color(240, 240, 200, 180);
     case CO2:    return color(255, 255, 255, 100);
+    // ---> 新增：金屬滅火粉末設定為帶點灰黃色的特製粉末 <---
+    case METAL:  return color(210, 200, 170, 200); 
     default:     return color(255);
   }
 }
