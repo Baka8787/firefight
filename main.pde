@@ -10,7 +10,7 @@ SoundFile bgm;
 SoundFile waterSfx;
 
 // 系統狀態定義
-enum State { START, SELECT_MISSION, PLAYING, RESULT ,INSTRUCTIONS}
+enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS }
 enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
 enum Agent { WATER, POWDER, CO2, METAL }
 State currentState = State.START;
@@ -149,10 +149,14 @@ void setup() {
   firePos = new PVector(random(200, width-200), random(height*0.5, height*0.9));
   targetPos = new PVector(width/2, height/2);
   crosshairPos = new PVector(width/2, height/2);
+
+  bridge = new SerialBridge(this);
+  bridge.refreshPorts();
 }
 
 void draw() {
   background(30);
+  if (bridge != null) bridge.poll();
   
   switch(currentState) {
     case START: drawStartScreen(); break;
@@ -160,6 +164,7 @@ void draw() {
     case PLAYING: updateSimulation(); drawGameUI(); break;
     case RESULT: drawResultScreen(); break;
     case INSTRUCTIONS: drawInstructionsScreen(); break;
+    case SETTINGS: drawSettingsScreen(); break;
   }
 }
 
@@ -182,8 +187,12 @@ void draw() {
     return;
   }
   
-  // 1. 更新目標位置為滑鼠座標（關鍵！）
-  targetPos.set(mouseX, mouseY);
+  // 1. 更新目標位置
+  if (bridge != null && bridge.ready) {
+    targetPos.set(bridge.targetX(), bridge.targetY());
+  } else {
+    targetPos.set(mouseX, mouseY);
+  }
   
   // 2. 準心平滑移動 (Linear Interpolation)
   crosshairPos.lerp(targetPos, 0.2); 
@@ -288,8 +297,8 @@ void keyPressed() {
       break;
       
     case SELECT_MISSION:
-      // ---> 關鍵修改：選單總共有 6 個選項 (5個任務 + 1個說明) <---
-      int totalOptions = missions.length + 1; 
+      // ---> 關鍵修改：選單總共有 7 個選項 (5個任務 + 說明 + 硬體設定) <---
+      int totalOptions = missions.length + 2; 
       
       if (keyCode == UP) {
         selectedMissionIdx = (selectedMissionIdx - 1 + totalOptions) % totalOptions;
@@ -307,9 +316,13 @@ void keyPressed() {
           lastTimeUpdate = millis();
           if (bgm.isPlaying()) bgm.stop();
         } 
-        else {
-          // 如果選的是 5 (也就是最後一個選項)，進入說明畫面
+        else if (selectedMissionIdx == missions.length) {
           currentState = State.INSTRUCTIONS;
+        }
+        else {
+          if (bridge != null) bridge.refreshPorts();
+          settingsIdx = 0;
+          currentState = State.SETTINGS;
         }
       }
       break;
@@ -324,6 +337,10 @@ void keyPressed() {
         // ---> 新增：按 4 切換為金屬滅火劑 <---
         else if (key == '4') { currentAgent = Agent.METAL; lastAgentSwitch = now; }
       }
+      break;
+
+    case SETTINGS:
+      handleSettingsKey();
       break;
   }
 }

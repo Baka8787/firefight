@@ -13,6 +13,7 @@ int bufferIndex = 0;
  * 換接硬體時只需替換此函式內容
  */
 float getSensorData() {
+  if (bridge != null) return bridge.gameAnalogMapped();
   return mousePressed ? 800 : 100;
 }
 
@@ -20,6 +21,7 @@ float getSensorData() {
  * 判斷使用者是否正在按壓握把
  */
 boolean isPressing() {
+  if (bridge != null) return bridge.gamePressing();
   return mousePressed;
 }
 

@@ -60,7 +60,26 @@ void drawMissionSelectScreen() {
   textSize(22);
   text("📖 遊戲說明指南", instX, instY);
 
-  // 4. 操作提示 (稍微往下放一點，並改為確認)
+  // 4. 硬體設定選項
+  int hwIdx = missions.length + 1;
+  float hwX = width/2;
+  float hwY = 130 + hwIdx * 85;
+
+  if (hwIdx == selectedMissionIdx) {
+    fill(100, 200, 255, 100);
+    stroke(100, 200, 255);
+    strokeWeight(3);
+  } else {
+    fill(60);
+    noStroke();
+  }
+  rect(hwX - 250, hwY - 37, 500, 75, 15);
+
+  fill(100, 200, 255);
+  textSize(22);
+  text("硬體設定", hwX, hwY);
+
+  // 5. 操作提示 (稍微往下放一點，並改為確認)
   fill(255, 200, 0);
   textSize(16);
   text("使用上下鍵 [↑][↓] 切換，按 [Enter] 確認", width/2, height - 30); 

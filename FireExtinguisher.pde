@@ -10,15 +10,15 @@ void drawFireExtinguisher() {
   pushStyle();
 
   // 1. 握持點：X 中幅跟隨，Y 微幅跟隨
-  float holdX = width * 0.5 + (mouseX - width * 0.5) * 0.18;
-  float holdY = (height - 80) + (mouseY - height * 0.5) * 0.06;
+  float holdX = width * 0.5 + (targetPos.x - width * 0.5) * 0.18;
+  float holdY = (height - 80) + (targetPos.y - height * 0.5) * 0.06;
   holdY = constrain(holdY, height - 130, height - 30);
 
   lerpNozzleX = lerp(lerpNozzleX, holdX, 0.10);
   lerpNozzleY = lerp(lerpNozzleY, holdY, 0.10);
 
   // 2. 瓶身接點：靠近中間，X 跟隨幅度比噴嘴小（重量感）
-  float tankOffsetX = (mouseX - width * 0.5) * 0.04;
+  float tankOffsetX = (targetPos.x - width * 0.5) * 0.04;
   float tankAttachX = width * 0.55 + tankOffsetX;
   float tankAttachY = height + 30;
 
@@ -86,7 +86,7 @@ void drawCO2Horn() {
  */
 void generateParticles(PVector target, float radius) {
   float muzzleLength = (currentAgent == Agent.CO2) ? 50 : 40;
-  float angle = atan2(mouseY - lerpNozzleY, mouseX - lerpNozzleX);
+  float angle = atan2(target.y - lerpNozzleY, target.x - lerpNozzleX);
   float emitX = lerpNozzleX + cos(angle) * muzzleLength;
   float emitY = lerpNozzleY + sin(angle) * muzzleLength;
   PVector emitPos = new PVector(emitX, emitY);

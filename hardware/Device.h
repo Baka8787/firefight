@@ -29,6 +29,7 @@ public:
     out.print(':');
     out.print(_mpu.pitch(), 2); out.print(',');
     out.print(_mpu.roll(), 2);  out.print(',');
+    out.print(_mpu.yaw(), 2);   out.print(',');
     out.print(_analog.value());
   }
 
