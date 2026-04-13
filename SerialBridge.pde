@@ -3,26 +3,28 @@ import processing.serial.*;
 SerialBridge bridge;
 
 class CalibrationData {
-  int analogMin = 50;
-  int analogMax = 900;
+  int analogMin = 50, analogMax = 900;
   float sensitivity = 10.0;
 
+  static final int CAL_POINT_COUNT = 9;
+
+  PVector[] imuPoints = new PVector[CAL_POINT_COUNT];
+  float[] screenXs = new float[CAL_POINT_COUNT];
+  float[] screenYs = new float[CAL_POINT_COUNT];
+
   PVector centerVec = new PVector();
-  PVector upVec = new PVector();
-  PVector downVec = new PVector();
-  PVector leftVec = new PVector();
-  PVector rightVec = new PVector();
 
-  PVector axisX = new PVector(1, 0, 0);
-  PVector axisY = new PVector(0, 1, 0);
-
-  float leftRange = 1;
-  float rightRange = 1;
-  float upRange = 1;
-  float downRange = 1;
+  float[] modelX = {0, 1, 0, 0};
+  float[] modelY = {0, 0, 1, 0};
 
   boolean calibrated = false;
   int calibrationStep = -1;
+
+  CalibrationData() {
+    for (int i = 0; i < CAL_POINT_COUNT; i++) {
+      imuPoints[i] = new PVector();
+    }
+  }
 }
 
 class SerialBridge {
@@ -116,7 +118,7 @@ class SerialBridge {
     sendCommand("hose:" + (hoseEnabled ? 1 : 0));
   }
 
-  void parseLine(String line) {
+  private void parseLine(String line) {
     String[] segments = split(line, '|');
     boolean gotPacket = false;
 
@@ -191,6 +193,22 @@ class SerialBridge {
     return ready && millis() - lastHoseMillis < 500;
   }
 
+  int currentGameDevice() {
+    return currentAgent == Agent.WATER ? 1 : 0;
+  }
+
+  boolean currentGameDeviceEnabled() {
+    return currentGameDevice() == 0 ? extEnabled : hoseEnabled;
+  }
+
+  boolean currentGameDeviceFresh() {
+    return currentGameDevice() == 0 ? extFresh() : hoseFresh();
+  }
+
+  boolean currentGameDeviceActive() {
+    return currentGameDeviceEnabled() && currentGameDeviceFresh();
+  }
+
   CalibrationData activeCal() {
     return calibrationDevice == 0 ? extCal : hoseCal;
   }
@@ -199,21 +217,16 @@ class SerialBridge {
     return currentGameDevice() == 0 ? extCal : hoseCal;
   }
 
-  int currentGameDevice() {
-    return currentAgent == Agent.WATER ? 1 : 0;
+  String calibrationDeviceName() {
+    return calibrationDevice == 0 ? "滅火器" : "消防瞄子";
   }
 
-  String currentGameDeviceName() {
-    return currentGameDevice() == 0 ? "滅火器" : "消防瞄子";
+  String currentAimDeviceName() {
+    return currentGameDeviceActive() ? (currentGameDevice() == 0 ? "滅火器" : "消防瞄子") : "滑鼠";
   }
 
   String currentControlSourceName() {
-    return gameControlActive() ? currentGameDeviceName() : "滑鼠";
-  }
-
-  boolean gameControlActive() {
-    if (currentGameDevice() == 0) return extEnabled && extFresh();
-    return hoseEnabled && hoseFresh();
+    return currentAimDeviceName();
   }
 
   float activePitch() {
@@ -232,20 +245,13 @@ class SerialBridge {
     return calibrationDevice == 0 ? extAnalog : hoseAnalog;
   }
 
-  float gamePitch() {
-    return currentGameDevice() == 0 ? extPitch : hosePitch;
+  PVector activeImuVector() {
+    return new PVector(activePitch(), activeRoll(), activeYaw());
   }
 
-  float gameRoll() {
-    return currentGameDevice() == 0 ? extRoll : hoseRoll;
-  }
-
-  float gameYaw() {
-    return currentGameDevice() == 0 ? extYaw : hoseYaw;
-  }
-
-  int gameAnalog() {
-    return currentGameDevice() == 0 ? extAnalog : hoseAnalog;
+  PVector gameImuVector() {
+    if (currentGameDevice() == 0) return new PVector(extPitch, extRoll, extYaw);
+    return new PVector(hosePitch, hoseRoll, hoseYaw);
   }
 
   float normalizeFromRange(int raw, int low, int high) {
@@ -253,9 +259,13 @@ class SerialBridge {
     return constrain(map(raw, low, high, 0, 1), 0, 1);
   }
 
-  float activeAnalogNormalized() {
+  float analogNormalized() {
     CalibrationData c = activeCal();
     return normalizeFromRange(activeAnalog(), c.analogMin, c.analogMax);
+  }
+
+  int analogMapped() {
+    return int(analogNormalized() * 1023);
   }
 
   float extAnalogNormalized() {
@@ -266,23 +276,48 @@ class SerialBridge {
     return normalizeFromRange(hoseAnalog, hoseCal.analogMin, hoseCal.analogMax);
   }
 
+  int gameAnalog() {
+    return currentGameDevice() == 0 ? extAnalog : hoseAnalog;
+  }
+
   float gameAnalogNormalized() {
     CalibrationData c = gameCal();
     return normalizeFromRange(gameAnalog(), c.analogMin, c.analogMax);
   }
 
   int gameAnalogMapped() {
-    if (gameControlActive()) return int(gameAnalogNormalized() * 1023);
+    if (currentGameDeviceActive()) return int(gameAnalogNormalized() * 1023);
     return app.mousePressed ? 800 : 100;
   }
 
   boolean gamePressing() {
-    if (gameControlActive()) return gameAnalogNormalized() > 0.01;
+    if (currentGameDeviceActive()) return gameAnalogNormalized() > 0.01;
     return app.mousePressed;
   }
 
-  String calibrationDeviceName() {
-    return calibrationDevice == 0 ? "滅火器" : "消防瞄子";
+  boolean extControlActive() {
+    return extEnabled && extFresh() && extCal.analogMax != extCal.analogMin;
+  }
+
+  boolean hoseControlActive() {
+    return hoseEnabled && hoseFresh() && hoseCal.analogMax != hoseCal.analogMin;
+  }
+
+  float extControlNormalized() {
+    if (extControlActive()) return extAnalogNormalized();
+    return app.mousePressed ? 1.0 : 0.0;
+  }
+
+  int hoseControlMapped() {
+    if (hoseControlActive()) {
+      return int(hoseAnalogNormalized() * 1023);
+    }
+    return app.mousePressed ? 800 : 100;
+  }
+
+  boolean extPressing() {
+    if (extControlActive()) return extControlNormalized() > 0.01;
+    return app.mousePressed;
   }
 
   String calibrationLowLabel() {
@@ -309,92 +344,47 @@ class SerialBridge {
     return enabled ? "啟用" : "停用";
   }
 
-  float mapWithCenter(float value, float low, float mid, float high, float outLow, float outMid, float outHigh) {
-    if (value <= mid) {
-      if (abs(mid - low) < 0.0001) return outMid;
-      return map(value, low, mid, outLow, outMid);
-    }
-    if (abs(high - mid) < 0.0001) return outMid;
-    return map(value, mid, high, outMid, outHigh);
-  }
-
-  float projectX(PVector v, CalibrationData c) {
-    return PVector.sub(v, c.centerVec).dot(c.axisX);
-  }
-
-  float projectY(PVector v, CalibrationData c) {
-    return PVector.sub(v, c.centerVec).dot(c.axisY);
-  }
-
-  float mapTargetX(PVector v, CalibrationData c) {
-    if (c.calibrated) {
-      return constrain(
-        mapWithCenter(projectX(v, c), -c.leftRange, 0, c.rightRange, 0, app.width * 0.5, app.width),
-        0, app.width
-      );
-    }
-    return constrain(app.width / 2.0 + v.z * c.sensitivity, 0, app.width);
-  }
-
-  float mapTargetY(PVector v, CalibrationData c) {
-    if (c.calibrated) {
-      return constrain(
-        mapWithCenter(projectY(v, c), -c.upRange, 0, c.downRange, 0, app.height * 0.5, app.height),
-        0, app.height
-      );
-    }
-    return constrain(app.height / 2.0 + v.x * c.sensitivity, 0, app.height);
-  }
-
-  float targetX() {
-    if (!gameControlActive()) return app.mouseX;
-    return mapTargetX(new PVector(gamePitch(), gameRoll(), gameYaw()), gameCal());
-  }
-
-  float targetY() {
-    if (!gameControlActive()) return app.mouseY;
-    return mapTargetY(new PVector(gamePitch(), gameRoll(), gameYaw()), gameCal());
-  }
-
-  float activeTargetX() {
-    if (calibrationDevice == 0 && !extFresh()) return app.mouseX;
-    if (calibrationDevice == 1 && !hoseFresh()) return app.mouseX;
-    return mapTargetX(new PVector(activePitch(), activeRoll(), activeYaw()), activeCal());
-  }
-
-  float activeTargetY() {
-    if (calibrationDevice == 0 && !extFresh()) return app.mouseY;
-    if (calibrationDevice == 1 && !hoseFresh()) return app.mouseY;
-    return mapTargetY(new PVector(activePitch(), activeRoll(), activeYaw()), activeCal());
-  }
-
   boolean calibrating() {
     CalibrationData c = activeCal();
-    return c.calibrationStep >= 0 && c.calibrationStep < 5;
+    return c.calibrationStep >= 0 && c.calibrationStep < CalibrationData.CAL_POINT_COUNT;
   }
 
   String calibrationStepLabel() {
     CalibrationData c = activeCal();
     switch (c.calibrationStep) {
       case 0: return "正中";
-      case 1: return "上";
-      case 2: return "下";
-      case 3: return "左";
-      case 4: return "右";
+      case 1: return "上中";
+      case 2: return "下中";
+      case 3: return "左中";
+      case 4: return "右中";
+      case 5: return "左上";
+      case 6: return "右上";
+      case 7: return "左下";
+      case 8: return "右下";
     }
     return "";
   }
 
   PVector calibrationGuidePoint() {
-    CalibrationData c = activeCal();
-    switch (c.calibrationStep) {
-      case 0: return new PVector(app.width / 2.0, app.height / 2.0);
-      case 1: return new PVector(app.width / 2.0, 70);
-      case 2: return new PVector(app.width / 2.0, app.height - 70);
-      case 3: return new PVector(70, app.height / 2.0);
-      case 4: return new PVector(app.width - 70, app.height / 2.0);
+    float left = 100;
+    float right = app.width - 100;
+    float top = 90;
+    float bottom = app.height - 90;
+    float cx = app.width / 2.0;
+    float cy = app.height / 2.0;
+
+    switch (activeCal().calibrationStep) {
+      case 0: return new PVector(cx, cy);
+      case 1: return new PVector(cx, top);
+      case 2: return new PVector(cx, bottom);
+      case 3: return new PVector(left, cy);
+      case 4: return new PVector(right, cy);
+      case 5: return new PVector(left, top);
+      case 6: return new PVector(right, top);
+      case 7: return new PVector(left, bottom);
+      case 8: return new PVector(right, bottom);
     }
-    return new PVector(app.width / 2.0, app.height / 2.0);
+    return new PVector(cx, cy);
   }
 
   void beginDirectionCalibration() {
@@ -403,66 +393,175 @@ class SerialBridge {
     c.calibrated = false;
   }
 
-  void rebuildAxes(CalibrationData c) {
-    PVector rightDelta = PVector.sub(c.rightVec, c.centerVec);
-    PVector leftDelta = PVector.sub(c.leftVec, c.centerVec);
-    PVector downDelta = PVector.sub(c.downVec, c.centerVec);
-    PVector upDelta = PVector.sub(c.upVec, c.centerVec);
+  PVector captureStableVector() {
+    int sampleCount = 18;
+    PVector sum = new PVector();
 
-    PVector axisX = PVector.sub(rightDelta, leftDelta);
-    if (axisX.magSq() < 0.0001) axisX = rightDelta.copy();
-    if (axisX.magSq() < 0.0001) axisX = new PVector(1, 0, 0);
-    axisX.normalize();
+    for (int i = 0; i < sampleCount; i++) {
+      poll();
+      sum.add(activePitch(), activeRoll(), activeYaw());
+      app.delay(8);
+    }
 
-    PVector axisY = PVector.sub(downDelta, upDelta);
-    if (axisY.magSq() < 0.0001) axisY = downDelta.copy();
-    if (axisY.magSq() < 0.0001) axisY = new PVector(0, 1, 0);
+    sum.div((float)sampleCount);
+    return sum;
+  }
 
-    float mix = axisY.dot(axisX);
-    axisY.sub(PVector.mult(axisX, mix));
-    if (axisY.magSq() < 0.0001) axisY = new PVector(0, 1, 0);
-    axisY.normalize();
+  void storeCalibrationSample(CalibrationData c, int index, PVector imu, PVector screenPoint) {
+    c.imuPoints[index].set(imu);
+    c.screenXs[index] = screenPoint.x;
+    c.screenYs[index] = screenPoint.y;
+  }
 
-    c.axisX.set(axisX);
-    c.axisY.set(axisY);
+  boolean solve4x4(float[][] a, float[] b, float[] out) {
+    float[][] m = new float[4][5];
 
-    c.leftRange = max(0.0001, abs(leftDelta.dot(c.axisX)));
-    c.rightRange = max(0.0001, abs(rightDelta.dot(c.axisX)));
-    c.upRange = max(0.0001, abs(upDelta.dot(c.axisY)));
-    c.downRange = max(0.0001, abs(downDelta.dot(c.axisY)));
+    for (int r = 0; r < 4; r++) {
+      for (int c = 0; c < 4; c++) m[r][c] = a[r][c];
+      m[r][4] = b[r];
+    }
+
+    for (int col = 0; col < 4; col++) {
+      int pivot = col;
+      for (int r = col + 1; r < 4; r++) {
+        if (abs(m[r][col]) > abs(m[pivot][col])) pivot = r;
+      }
+
+      if (abs(m[pivot][col]) < 0.000001) return false;
+
+      if (pivot != col) {
+        float[] tmp = m[pivot];
+        m[pivot] = m[col];
+        m[col] = tmp;
+      }
+
+      float div = m[col][col];
+      for (int c = col; c < 5; c++) m[col][c] /= div;
+
+      for (int r = 0; r < 4; r++) {
+        if (r == col) continue;
+        float factor = m[r][col];
+        for (int c = col; c < 5; c++) m[r][c] -= factor * m[col][c];
+      }
+    }
+
+    for (int i = 0; i < 4; i++) out[i] = m[i][4];
+    return true;
+  }
+
+  boolean fitLinearModel(CalibrationData c) {
+    c.centerVec.set(c.imuPoints[0]);
+
+    float[][] ata = new float[4][4];
+    float[] atbx = new float[4];
+    float[] atby = new float[4];
+
+    for (int i = 0; i < CalibrationData.CAL_POINT_COUNT; i++) {
+      float dp = c.imuPoints[i].x - c.centerVec.x;
+      float dr = c.imuPoints[i].y - c.centerVec.y;
+      float dy = c.imuPoints[i].z - c.centerVec.z;
+      float[] f = {1, dp, dr, dy};
+
+      for (int r = 0; r < 4; r++) {
+        for (int col = 0; col < 4; col++) {
+          ata[r][col] += f[r] * f[col];
+        }
+        atbx[r] += f[r] * c.screenXs[i];
+        atby[r] += f[r] * c.screenYs[i];
+      }
+    }
+
+    float[] mx = new float[4];
+    float[] my = new float[4];
+
+    boolean okX = solve4x4(ata, atbx, mx);
+    boolean okY = solve4x4(ata, atby, my);
+    if (!okX || !okY) return false;
+
+    for (int i = 0; i < 4; i++) {
+      c.modelX[i] = mx[i];
+      c.modelY[i] = my[i];
+    }
+    return true;
   }
 
   void captureDirectionCalibration() {
     CalibrationData c = activeCal();
     if (c.calibrationStep < 0) return;
 
-    PVector v = new PVector(activePitch(), activeRoll(), activeYaw());
-
-    switch (c.calibrationStep) {
-      case 0:
-        c.centerVec.set(v);
-        break;
-      case 1:
-        c.upVec.set(v);
-        break;
-      case 2:
-        c.downVec.set(v);
-        break;
-      case 3:
-        c.leftVec.set(v);
-        break;
-      case 4:
-        c.rightVec.set(v);
-        break;
-    }
+    int step = c.calibrationStep;
+    PVector imu = captureStableVector();
+    PVector screenPoint = calibrationGuidePoint();
+    storeCalibrationSample(c, step, imu, screenPoint);
 
     c.calibrationStep++;
 
-    if (c.calibrationStep >= 5) {
+    if (c.calibrationStep >= CalibrationData.CAL_POINT_COUNT) {
+      c.calibrated = fitLinearModel(c);
       c.calibrationStep = -1;
-      rebuildAxes(c);
-      c.calibrated = true;
     }
+  }
+
+  float predictX(PVector imu, CalibrationData c) {
+    float dp = imu.x - c.centerVec.x;
+    float dr = imu.y - c.centerVec.y;
+    float dy = imu.z - c.centerVec.z;
+    return c.modelX[0] + c.modelX[1] * dp + c.modelX[2] * dr + c.modelX[3] * dy;
+  }
+
+  float predictY(PVector imu, CalibrationData c) {
+    float dp = imu.x - c.centerVec.x;
+    float dr = imu.y - c.centerVec.y;
+    float dy = imu.z - c.centerVec.z;
+    return c.modelY[0] + c.modelY[1] * dp + c.modelY[2] * dr + c.modelY[3] * dy;
+  }
+
+  float targetX() {
+    if (!currentGameDeviceActive()) return app.mouseX;
+
+    CalibrationData c = gameCal();
+    PVector imu = gameImuVector();
+
+    if (c.calibrated) {
+      return constrain(predictX(imu, c), 0, app.width);
+    }
+
+    return constrain(app.width / 2.0 + imu.z * c.sensitivity, 0, app.width);
+  }
+
+  float targetY() {
+    if (!currentGameDeviceActive()) return app.mouseY;
+
+    CalibrationData c = gameCal();
+    PVector imu = gameImuVector();
+
+    if (c.calibrated) {
+      return constrain(predictY(imu, c), 0, app.height);
+    }
+
+    return constrain(app.height / 2.0 + imu.x * c.sensitivity, 0, app.height);
+  }
+
+  float activeTargetX() {
+    boolean fresh = calibrationDevice == 0 ? extFresh() : hoseFresh();
+    if (!fresh) return app.mouseX;
+
+    CalibrationData c = activeCal();
+    PVector imu = activeImuVector();
+
+    if (c.calibrated) return constrain(predictX(imu, c), 0, app.width);
+    return constrain(app.width / 2.0 + imu.z * c.sensitivity, 0, app.width);
+  }
+
+  float activeTargetY() {
+    boolean fresh = calibrationDevice == 0 ? extFresh() : hoseFresh();
+    if (!fresh) return app.mouseY;
+
+    CalibrationData c = activeCal();
+    PVector imu = activeImuVector();
+
+    if (c.calibrated) return constrain(predictY(imu, c), 0, app.height);
+    return constrain(app.height / 2.0 + imu.x * c.sensitivity, 0, app.height);
   }
 
   void calibrateAnalogMin() {

@@ -45,9 +45,9 @@ void drawSettingsScreen() {
 
   String controlLabel = (bridge != null) ? bridge.enabledLabel(controlEnabled) : "停用";
 
-  String calStatus = "未校準";
+  String calStatus = "未建模";
   if (cal.calibrated) calStatus = "已完成";
-  if (bridge != null && cal.calibrationStep >= 0) calStatus = "校準 " + bridge.calibrationStepLabel();
+  if (bridge != null && cal.calibrationStep >= 0) calStatus = "校準 " + (cal.calibrationStep + 1) + "/9";
 
   String lowLabel = (bridge != null) ? bridge.calibrationLowLabel() : "壓把・釋放點";
   String highLabel = (bridge != null) ? bridge.calibrationHighLabel() : "壓把・最大點";
@@ -58,7 +58,7 @@ void drawSettingsScreen() {
     "序列埠",
     "校準裝置",
     "控制狀態",
-    "上下左右中心校準",
+    "九點建模校準",
     lowLabel,
     highLabel,
     "靈敏度"
@@ -78,7 +78,7 @@ void drawSettingsScreen() {
     (bridge != null && bridge.connected) ? "[Enter] 斷開" : "[← →] 選埠  [Enter] 連線",
     "[← →] 切換",
     "[← →] 切換 啟用 / 停用",
-    live ? (bridge.calibrating() ? "[Enter] 擷取目前方向" : "[Enter] 開始校準") : "",
+    live ? (bridge.calibrating() ? "[Enter] 擷取目前點" : "[Enter] 開始校準") : "",
     live ? lowHint : "",
     live ? highHint : "",
     "[← →] 調整"
@@ -119,7 +119,7 @@ void drawSettingsScreen() {
 
   if (bridge != null) {
     float panelY = baseY + labels.length * itemH + 8;
-    float panelH = 210;
+    float panelH = 216;
 
     fill(30, 220);
     noStroke();
@@ -132,9 +132,7 @@ void drawSettingsScreen() {
     fill(200);
     textSize(13);
 
-    float showPitch;
-    float showRoll;
-    float showYaw;
+    float showPitch, showRoll, showYaw;
     int showAnalog;
     float showNorm;
     String showFresh;
@@ -158,7 +156,7 @@ void drawSettingsScreen() {
     text("目前校準裝置：" + calibrationLabel, itemX + 16, panelY + 32);
     text("控制狀態：" + controlLabel, itemX + 16, panelY + 52);
     text("目前遊戲藥劑：" + agentNames[currentAgent.ordinal()], itemX + 16, panelY + 72);
-    text("遊戲控制來源：" + bridge.currentControlSourceName() + "（水 = 消防瞄子，其它 = 滅火器）", itemX + 16, panelY + 92);
+    text("遊戲定位來源：" + bridge.currentControlSourceName() + "（水 = 消防瞄子，其它 = 滅火器）", itemX + 16, panelY + 92);
 
     text(calibrationLabel + "  Pitch " + nf(showPitch, 0, 1)
       + "°   Roll " + nf(showRoll, 0, 1)
@@ -167,17 +165,13 @@ void drawSettingsScreen() {
       + "   校準後 " + nf(showNorm, 0, 2),
       itemX + 16, panelY + 118);
 
-    text("目前映射座標  (" + int(bridge.activeTargetX()) + ", " + int(bridge.activeTargetY()) + ")",
-      itemX + 16, panelY + 144);
-
-    text("目前校準值  " + lowLabel + " = " + cal.analogMin + "   " + highLabel + " = " + cal.analogMax,
-      itemX + 16, panelY + 170);
-
-    text("資料狀態：" + showFresh + "   映射依中心 / 上下 / 左右校準結果決定", itemX + 16, panelY + 190);
+    text("目前映射座標  (" + int(bridge.activeTargetX()) + ", " + int(bridge.activeTargetY()) + ")", itemX + 16, panelY + 144);
+    text("建模方式：九點校準 + 相對中心姿態線性擬合", itemX + 16, panelY + 170);
+    text("資料狀態：" + showFresh, itemX + 16, panelY + 190);
 
     float bw = 120, bh = 68;
     float bx = itemX + itemW - bw - 16;
-    float by = panelY + 56;
+    float by = panelY + 52;
     fill(15);
     stroke(80);
     strokeWeight(1);
@@ -207,16 +201,11 @@ void drawSettingsScreen() {
     fill(255);
     textAlign(CENTER, CENTER);
     textSize(28);
-
-    if (bridge.calibrationStepLabel().equals("正中")) {
-      text("請將" + bridge.calibrationDeviceName() + "對準螢幕正中央", width / 2, height / 2 - 40);
-    } else {
-      text("請將" + bridge.calibrationDeviceName() + "對準螢幕" + bridge.calibrationStepLabel() + "方中央", width / 2, height / 2 - 40);
-    }
+    text("請將" + bridge.calibrationDeviceName() + "對準螢幕" + bridge.calibrationStepLabel(), width / 2, height / 2 - 40);
 
     textSize(18);
     fill(200);
-    text("確認穩定後按 Enter 擷取", width / 2, height / 2);
+    text("穩定後按 Enter 擷取，系統會用九個點建立目前握法模型", width / 2, height / 2);
 
     stroke(0, 255, 100);
     strokeWeight(3);
