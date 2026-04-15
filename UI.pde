@@ -324,30 +324,93 @@ void drawStartScreen() {
 }
 
 /**
- * 繪製結果畫面
+ * 繪製結果畫面 (優化排版與評級回饋)
  */
 void drawResultScreen() {
   pushStyle();
   textFont(mainFont);
-  fill(0, 0, 0, 180);
+  
+  // 半透明黑底遮罩 (稍微加深一點點，讓文字更立體)
+  fill(0, 0, 0, 200);
   rect(0, 0, width, height);
-  fill(255);
-  textSize(32);
-  textAlign(CENTER);
-  if (fireHealth <= 0) {
+  
+  // 取得當前任務的總時間限制
+  int totalMissionTime = missions[selectedMissionIdx].timeLimit;
+  float timeRatio = (float)remainingTime / totalMissionTime;
+  
+  // 設定文字完全置中對齊
+  textAlign(CENTER, CENTER);
+
+  if (fireHealth <= 0 && remainingTime > 0) {
+    // === 滅火成功：根據時間比例給予 A, B, C 評級 ===
+    String grade = "";
+    color gradeColor;
+    String feedbackMsg = ""; // 新增：回饋評語
+
+    if (timeRatio > 0.75f) {
+      grade = "A";
+      gradeColor = color(0, 255, 100); 
+      feedbackMsg = "完美撲滅！反應迅速，你是天生的打火英雄！";
+    } else if (timeRatio > 0.50f) {
+      grade = "B";
+      gradeColor = color(255, 200, 0); 
+      feedbackMsg = "表現不錯！火勢已順利受控，下次可以再快一點喔！";
+    } else {
+      grade = "C";
+      gradeColor = color(255, 150, 50); 
+      feedbackMsg = "好險！千鈞一髮完成任務，請再多熟悉藥劑與瞄準技巧！";
+    }
+
+    // 1. 顯示成功標題
+    textSize(36);
     fill(0, 255, 100);
-    text("[v] 成功! 火災已撲滅", width/2, height/2 - 40);
-    textSize(16);
-    fill(255);
-    text("用時: " + (180 - remainingTime) + " 秒", width/2, height/2 + 20);
+    text("[v] 成功! 火災已撲滅", width/2, height/2 - 120);
+
+    // 2. 顯示評級大字 (再放大，作為視覺焦點)
+    textSize(80);
+    fill(gradeColor);
+    text("評級: " + grade, width/2, height/2 - 30);
+
+    // 3. 顯示專屬回饋語
+    textSize(24);
+    fill(255, 230, 150); // 柔和的淺黃色，與白字區隔
+    text(feedbackMsg, width/2, height/2 + 50);
+
+    // 4. 顯示詳細用時
+    textSize(18);
+    fill(200);
+    int timeUsed = totalMissionTime - remainingTime;
+    text("任務用時: " + timeUsed + " 秒   |   總時限: " + totalMissionTime + " 秒", width/2, height/2 + 100);
+
   } else {
+    // === 滅火失敗：時間歸零，給予 F 評級 ===
+    
+    // 1. 顯示失敗標題
+    textSize(36);
     fill(255, 100, 100);
-    text("[x] 失敗! 時間已用盡", width/2, height/2);
+    text("[x] 失敗! 時間已用盡", width/2, height/2 - 120);
+    
+    // 2. 顯示 F 評級
+    textSize(80);
+    fill(255, 50, 50); 
+    text("評級: F", width/2, height/2 - 30);
+    
+    // 3. 顯示失敗回饋語
+    textSize(24);
+    fill(255, 200, 200); 
+    text("挑戰失敗！火勢已失控，請記住各類火災的正確應對方式，再來一次！", width/2, height/2 + 50);
   }
-  textSize(14);
-  text("按 R 鍵重新開始", width/2, height - 60);
+
+  // 5. 底部重新開始提示 (加上閃爍效果會更好，這裡先用靜態呈現)
+  textSize(20);
+  fill(255);
+  text("▶ 按 [R] 鍵返回主畫面 ◀", width/2, height - 60);
+  
   popStyle();
 }
+
+
+
 
 /**
  * 繪製遊戲說明畫面
