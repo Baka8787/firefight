@@ -130,12 +130,12 @@ void setup() {
   missions[3] = new Mission("金屬火災演練",  80, 120, "高難度:涉及活性金屬，禁水性物質");
   missions[4] = new Mission("緊急複合演練", 150, 200, "高難度：氣爆後火勢蔓延極快");
 
-  // ---> 關鍵修改：載入 5 張圖片 <---
-  missionPics[0] = loadImage("pic0.jpg"); 
-  missionPics[1] = loadImage("pic1.jpg");
-  missionPics[2] = loadImage("pic2.jpg");
-  missionPics[3] = loadImage("pic3.jpg"); // 新增
-  missionPics[4] = loadImage("pic4.jpg"); // 新增
+// ---> 關鍵修改：加上 pic/ 資料夾路徑 <---
+  missionPics[0] = loadImage("pic/pic0.jpg"); 
+  missionPics[1] = loadImage("pic/pic1.jpg");
+  missionPics[2] = loadImage("pic/pic2.jpg");
+  missionPics[3] = loadImage("pic/pic3.jpg"); 
+  missionPics[4] = loadImage("pic/pic4.jpg");
   
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 5; j++) {
