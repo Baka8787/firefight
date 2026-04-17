@@ -13,8 +13,9 @@ int bufferIndex = 0;
  * 換接硬體時只需替換此函式內容
  */
 float getSensorData() {
-  if (bridge != null) return bridge.gameAnalogMapped();
-  return mousePressed ? 800 : 100;
+  if (bridge != null && bridge.ready) return bridge.gameAnalogMapped(); 
+  // 沒接硬體時，回傳滾輪模擬的 mockSensorValue
+  return mockSensorValue; 
 }
 
 /**
@@ -30,6 +31,9 @@ boolean isPressing() {
  * 減少硬體雜訊對噴灑半徑的影響
  */
 float getFilteredSensorData() {
+  if (bridge == null || !bridge.ready) {
+    return getSensorData(); // 沒接硬體時，直接回傳 mock 值，不經過濾波
+  }
   float raw = getSensorData();
   sensorBuffer[bufferIndex] = raw;
   bufferIndex = (bufferIndex + 1) % sensorBuffer.length;

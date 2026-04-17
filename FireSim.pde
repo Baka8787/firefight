@@ -111,3 +111,25 @@ void shakeScreen() {
   translate(random(-3, 3), random(-3, 3));
   popMatrix();
 }
+
+void drawFireDebug() {
+  if (!debugMode) return;
+  
+  pushStyle();
+  noFill();
+  // 繪製判定圓圈 (判定半徑) 
+  stroke(255, 0, 0, 150); 
+  float aimRadius = sprayRadius * 0.8;
+  ellipse(firePos.x, firePos.y, aimRadius * 2, aimRadius * 2);
+  
+  // 繪製高度有效區間 [cite: 74-75]
+  stroke(0, 255, 255, 100);
+  line(0, firePos.y - 30, width, firePos.y - 30);
+  line(0, firePos.y + 30, width, firePos.y + 30);
+  
+  // 顯示當前數值
+  fill(255);
+  textSize(14);
+  text("Debug: FireHealth " + nf(fireHealth, 0, 2), firePos.x + 80, firePos.y);
+  popStyle();
+}

@@ -32,15 +32,12 @@ class Particle {
     float decayVar = random(0.85, 1.15);
 
     // 2. 根據藥劑類型設定尺寸與衰減速率（需與 generateParticles 幀數對齊）。 [cite: 116, 124-126]
-    // === Particle.pde ===
-
-    // 找到 Particle 建構子裡面的這段，補上 METAL：
     if (currentAgent == Agent.POWDER) {
       this.initialSize = random(8, 12);
       this.lifespanDecay = (255.0 / (35.0 * lifeBuffer)) * decayVar; 
     } else if (currentAgent == Agent.CO2) {
-      this.initialSize = 20;
-      this.lifespanDecay = (255.0 / (30.0 * lifeBuffer)) * decayVar;
+      this.initialSize = 18;
+      this.lifespanDecay = (255.0 / (20.0 * lifeBuffer)) * decayVar;
     // ---> 新增：METAL 粒子的尺寸與衰減 <---
     } else if (currentAgent == Agent.METAL) {
       this.initialSize = random(10, 15);
@@ -94,34 +91,41 @@ void update() {
   }
 
   /**
-   * 視覺繪製。 [cite: 127-138]
+   * 視覺繪製。 
    */
   void display() {
     float lifeRatio = lifespan / 255.0; 
     // 非線性透明度映射，讓消失過程更柔和
-    float alphaFactor = pow(lifeRatio, 1.6); 
-    float alpha = map(alphaFactor, 1, 0, 190, 0);
+    float alphaFactor = pow(lifeRatio, 1.1); 
+    float alpha = map(alphaFactor, 1, 0, 255, 0);
 
     pushStyle();
     noStroke();
 
     if (currentAgent == Agent.WATER) {
-      // 水柱核心。 [cite: 128-129]
-      float w = map(lifeRatio, 1, 0, initialSize * 0.5, initialSize * 2.0);
-      color waterCol = lerpColor(WATER_DEEP, WATER_MIST, 1.0 - lifeRatio);
+      float sensorVal = getFilteredSensorData(); // 取得即時感測器數值 (0-1023) [cite: 174, 196]
+      
+      // streamFactor: 0 為全水霧，1 為純水柱
+      float streamFactor = map(sensorVal, 0, 1023, 0.0, 1.0); 
+
+      // 1. 水柱核心 (Line) - 當 streamFactor 靠近 1 時，線條要更粗、更明顯
+      float w = map(lifeRatio, 1, 0, initialSize * (0.5 + 2.0 * streamFactor), initialSize * (1.0)); 
+      color waterCol = lerpColor(WATER_DEEP, WATER_MIST, 1.0 - lifeRatio); 
+      
       stroke(waterCol, alpha);
       strokeWeight(w);
       line(p.x, p.y, prevP.x, prevP.y); 
 
-      // 穿過準心後的水霧。 [cite: 147]
-      if (lifespan < 125) {
+      // 2. 水霧部分 (Ellipse) - 當 streamFactor 靠近 0 時，擴散圓圈要變大且透明
+      if (lifespan < 180) { // 提早開始渲染水霧效果
         noStroke();
-        float mAlpha = map(alphaFactor, 0.49, 0, 0, alpha * 0.7);
-        float mSize  = map(lifeRatio, 0.49, 0, w, w * 5.5);
+        // 當 streamFactor 越小，水霧透明度越高、尺寸越大
+        float mAlpha = map(alphaFactor, 0.5, 0, 0, alpha * (1.0 - streamFactor)); 
+        float mSize = map(lifeRatio, 0.5, 0, w, w * (8.0 - 7.0 * streamFactor));
+        
         fill(150, 210, 255, mAlpha);
-        ellipse(p.x + mistOffsetX, p.y + mistOffsetY, mSize, mSize);
+        ellipse(p.x + mistOffsetX, p.y + mistOffsetY, mSize, mSize); 
       }
-
     } else if (currentAgent == Agent.POWDER || currentAgent == Agent.METAL) {
       // 乾粉核心
       float coreW = map(lifeRatio, 1, 0, initialSize, initialSize * 0.3);
@@ -129,13 +133,17 @@ void update() {
       strokeWeight(coreW);
       line(p.x, p.y, prevP.x, prevP.y); 
 
-      // 乾粉雲團 (SCREEN 混合模式)。 [cite: 130-134]
+      // 乾粉/金屬粉雲團 (使用 SCREEN 混合模式增加亮度)
       if (lifespan < 135) {
         noStroke();
-        float cloudAlpha = map(alphaFactor, 0.53, 0, 0, alpha * 0.5);
+        blendMode(SCREEN); // 加亮混合模式，增強視覺衝擊
+        
+        float cloudAlpha = map(alphaFactor, 0.53, 0, 0, alpha * 0.6); // 提升雲團透明度
         float cloudSize  = map(lifeRatio, 0.53, 0, coreW * 2, coreW * 15); 
         fill(c, cloudAlpha);
         ellipse(p.x + mistOffsetX, p.y + mistOffsetY, cloudSize, cloudSize * 0.9);
+        
+        blendMode(BLEND); // 恢復預設混合模式
       }
 
     } else if (currentAgent == Agent.CO2) {
@@ -145,11 +153,11 @@ void update() {
       strokeWeight(jetW);
       line(p.x, p.y, prevP.x, prevP.y); 
 
-      // CO2 低溫冷霧 (穿過準心後劇烈膨脹)。 [cite: 135-138]
+      // CO2 低溫冷霧 (穿過準心後劇烈膨脹)。 
       if (lifespan < 160) {
         noStroke();
         float fogAlpha = map(alphaFactor, 0.62, 0, 0, alpha * 0.6);
-        float fogSize  = map(lifeRatio, 0.62, 0, jetW, 150); 
+        float fogSize  = map(lifeRatio, 0.62, 0, jetW, 100); 
         fill(255, fogAlpha);
         ellipse(p.x + mistOffsetX * 0.5, p.y + mistOffsetY * 0.5, fogSize, fogSize * 0.8);
       }

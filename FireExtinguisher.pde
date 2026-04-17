@@ -92,8 +92,10 @@ void generateParticles(PVector target, float radius) {
   PVector emitPos = new PVector(emitX, emitY);
 
   if (isPressing()) {
-    // 增加噴射時的視覺後座力抖動
-    lerpNozzleY = lerp(lerpNozzleY, height - 60 + random(10, 15), 0.4);
+    if (currentAgent != Agent.WATER) {
+      // 只有滅火器才有明顯後座力抖動 [cite: 18]
+      lerpNozzleY = lerp(lerpNozzleY, height - 60 + random(10, 15), 0.4);
+    }
   }
 
 float gravity, drag, flightFrames, spreadMult;
@@ -116,12 +118,21 @@ float gravity, drag, flightFrames, spreadMult;
     gravity = 0.28; drag = 0.985; flightFrames = 38; spreadMult = 1.2;
   }
 
-  // 數量優化：減少單次生成的倍數，改由單個粒子更大的雲團補償，解決卡頓
-  int baseCount = int(map(extinguisherPressure, 0, 100, 2, 6));
+  int baseCount = int(map(extinguisherPressure, 0, 100, 3, 8)); 
   int finalCount = baseCount;
-  if (currentAgent == Agent.CO2) finalCount = baseCount * 2; // 從 3 倍降為 2 倍，減少計算量
+
+  if (currentAgent == Agent.CO2) {
+    // CO2 不再倍增數量，改為跟隨 baseCount [cite: 27]
+    finalCount = baseCount; 
+    // 增加生成間隔判定，避免每一幀都噴（減少一半的粒子計算量）
+    if (frameCount % 2 != 0) return; 
+  }
 
   for (int i = 0; i < finalCount; i++) {
+    PVector jitterPos = emitPos.copy();
+    jitterPos.x += random(-5, 5);
+    jitterPos.y += random(-5, 5);
+
     float vVar = random(0.85, 1.15); // 增加速度變異，讓消散更有層次
     float spreadX = random(-spreadMult, spreadMult);
     float spreadY = random(-spreadMult * 0.7, spreadMult * 0.7);

@@ -50,7 +50,7 @@ class FireParticle {
 
   void display() {
     float lifeRatio = lifespan / maxLife;
-    float alpha     = map(lifeRatio, 0, 1, 0, 210);
+    float alpha     = map(lifeRatio, 0, 1, 0, 255);
     float w         = map(lifeRatio, 1, 0, 22, 5) + sizeJitter;
     float h         = map(lifeRatio, 1, 0, 36, 12) + sizeJitter;
 
@@ -66,7 +66,7 @@ class FireParticle {
 
     // 核心閃爍強度隨生命衰減，快消亡時核心也跟著熄滅
     float flickerStrength = lifeRatio * (0.8 + 0.2 * sin((frameCount + uniqueSeed) * 0.06));
-    float coreAlpha       = alpha * 0.75 * flickerStrength;
+    float coreAlpha       = alpha * 0.95 * flickerStrength;
 
     float x = p.x + jitterX;
     float y = p.y + jitterY;
