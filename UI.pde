@@ -379,12 +379,23 @@ void drawSmartFeedback() {
     textAlign(CENTER);
     text("⚠ 壓力不足，請用力按壓握把", width/2, height - 80);
     
-  } else if (crosshairPos.y < 350) {
-    // 瞄準提示（米黃色）
-    fill(STATUS_WARNING, 200);
-    textSize(14);
-    textAlign(CENTER);
-    text("[*] 請瞄準火源根部噴灑!", width/2, height - 80);
+  } else {
+    // 動態判斷是否瞄準太高
+    // 遍歷所有起火點，檢查準心與起火點的高度差
+    boolean aimingTooHigh = false;
+    for (FireSource fs : fireSources) {
+      if (fs.active && (fs.pos.y - crosshairPos.y) > 60) { 
+        aimingTooHigh = true;
+        break;
+      }
+    }
+
+    if (aimingTooHigh) {
+      fill(255, 200, 100, 200);
+      textSize(16);
+      textAlign(CENTER);
+      text("⚠ 請瞄準火源根部噴灑！", width/2, height - 80);
+    }
   }
 
   popStyle();

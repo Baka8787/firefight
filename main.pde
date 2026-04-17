@@ -242,7 +242,7 @@ void draw() {
   }
   
   // 6. 更新火焰粒子系統
-  updateFireParticles();
+  updateFireSystem();
 }
 
 
@@ -354,20 +354,30 @@ void initializeSelectedMission() {
   fireHealth = m.initialHealth;
   extinguisherPressure = 100.0f; 
   
-  // 1. 從 0 到 4 隨機抽籤 (決定這次燒哪個位置)
+  // 1. 隨機決定哪一個家具是初始起火點
   int randomIdx = int(random(5)); 
   
-  // 2. 依據抽籤結果，讀取並設定火災類型 (GENERAL 或 ELECTRICAL)
-  currentFireType = manualFireTypes[selectedMissionIdx][randomIdx];
-  
-  // 3. 依據抽籤結果，讀取並設定火源座標 (Y軸減30讓火往上飄一點)
-  float targetX = manualCoords[selectedMissionIdx][randomIdx][0];
-  float targetY = manualCoords[selectedMissionIdx][randomIdx][1];
-  firePos = new PVector(targetX, targetY - 30); 
-  
-  // 4. 清理前一次的殘留粒子
+  // 2. 清理舊有的火源與粒子 [cite: 147-148]
+  fireSources.clear(); 
   particles.clear();
   fireParticles.clear();
+  
+  // 3. 將該圖片對應的 5 個家具座標全部加入火源系統
+  for (int i = 0; i < 5; i++) {
+    float x = manualCoords[selectedMissionIdx][i][0];
+    float y = manualCoords[selectedMissionIdx][i][1];
+    FireType type = manualFireTypes[selectedMissionIdx][i];
+    
+    // 只有隨機抽中的那個點是初始 active 的 [cite: 146]
+    boolean isInitialFire = (i == randomIdx);
+    fireSources.add(new FireSource(new PVector(x, y - 30), type, isInitialFire));
+    
+    // 如果是起火點，同步設定當前任務的火災類型 (供 UI 顯示)
+    if (isInitialFire) {
+      currentFireType = type;
+      firePos = new PVector(x, y - 30); // 保留此變數供舊邏輯參考
+    }
+  }
 }
 /**
  * 輔助函數：重置系統至初始狀態
