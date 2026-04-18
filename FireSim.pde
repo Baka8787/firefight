@@ -160,11 +160,11 @@ void checkExtinguishByCrosshair() {
       if (currentAgent == Agent.WATER || currentAgent == Agent.POWDER) agentMult = 1.0;
       break;
     case ELECTRICAL:
-      if (currentAgent == Agent.WATER || currentAgent == Agent.CO2) agentMult = 1.2;
+      if (currentAgent == Agent.POWDER || currentAgent == Agent.CO2) agentMult = 1.2;
       else agentMult = -0.6; // 用錯藥劑助長火勢
       break;
     case OIL:
-      if (currentAgent == Agent.WATER || currentAgent == Agent.CO2) agentMult = 1.0;
+      if (currentAgent == Agent.POWDER || currentAgent == Agent.CO2) agentMult = 1.0;
       else agentMult = -0.8;
       break;
     case METAL:

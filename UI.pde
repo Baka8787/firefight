@@ -242,7 +242,7 @@ void drawMissionInfo() {
   
   // 1. 根據目前任務類型決定顯示名稱
   String typeStr = "";
-  color fireColor = color(200, 200, 200);
+  color fireColor = color(200,200,200);
   switch(currentFireType) {
     case GENERAL:    typeStr = "A類普通火災"; fireColor = getFireTypeColor(FireType.GENERAL); break;
     case ELECTRICAL: typeStr = "C類電器火災"; fireColor = getFireTypeColor(FireType.ELECTRICAL); break;
@@ -344,10 +344,10 @@ void drawEquipmentSection() {
   if (currentFireType == FireType.GENERAL && (currentAgent == Agent.CO2 || currentAgent == Agent.METAL)) {
     text("⚠ 普通火災請用水或乾粉!", 30, height - 50);
     
-  } else if (currentFireType == FireType.ELECTRICAL && (currentAgent == Agent.POWDER || currentAgent == Agent.METAL)) {
+  } else if (currentFireType == FireType.ELECTRICAL && (currentAgent == Agent.WATER || currentAgent == Agent.METAL)) {
     text("⚠ 此藥劑對電器無效!", 30, height - 50);
     
-  } else if (currentFireType == FireType.OIL && (currentAgent == Agent.POWDER || currentAgent == Agent.METAL)) {
+  } else if (currentFireType == FireType.OIL && (currentAgent == Agent.WATER || currentAgent == Agent.METAL)) {
     text("⚠ 此藥劑對油類無效!", 30, height - 50);
     
   } else if (currentFireType == FireType.METAL && currentAgent != Agent.METAL) {
@@ -614,13 +614,13 @@ void drawInstructionsScreen() {
   fill(getFireTypeColor(FireType.ELECTRICAL));
   text("   ▶ 電器火災 (插座、電箱)：", startX, startY + lineSpace * 3.5f);
   fill(TEXT_WEAK);
-  text("推薦使用 水、CO2", startX + 380, startY + lineSpace * 3.5f);
+  text("推薦使用 乾粉、CO2", startX + 380, startY + lineSpace * 3.5f);
 
   // B類
   fill(getFireTypeColor(FireType.OIL));
   text("   ▶ 油類火災 (廚房油鍋)：", startX, startY + lineSpace * 4.5f);
   fill(TEXT_WEAK);
-  text("推薦使用 水、CO2", startX + 380, startY + lineSpace * 4.5f);
+  text("推薦使用 乾粉、CO2", startX + 380, startY + lineSpace * 4.5f);
 
   // D類
   fill(getFireTypeColor(FireType.METAL));
