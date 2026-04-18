@@ -102,11 +102,11 @@ void drawTopStatus() {
   int seconds = remainingTime % 60;
   String timeStr = String.format("%02d:%02d", minutes, seconds);
   color timerColor = getTimerColor(remainingTime, missions[selectedMissionIdx].timeLimit);
-  drawInfoBlock(20, 20, 140, 60, "剩余時間", timeStr, timerColor);
+  drawInfoBlock(880, 20, 160, 80, "剩余時間", timeStr, timerColor);
   
   // 右上：壓力表（含進度條）
   color pressureColor = extinguisherPressure > 30 ? STATUS_SUCCESS : STATUS_DANGER;
-  drawInfoBlock(width - 160, 20, 140, 60, "滅火器", (int)extinguisherPressure + "%", pressureColor);
+  drawInfoBlock(width - 180, 20, 160, 110, "滅火器", (int)extinguisherPressure + "%", pressureColor);
   drawHorizontalBar(width - 150, 70, 120, 6, extinguisherPressure / 100.0, pressureColor);
 }
 
@@ -280,7 +280,7 @@ void drawProgressBar() {
   
   // 背景框與進度條容器
   float barX = width/2 - 180;
-  float barY = 90;
+  float barY = 60;
   float barW = 360;
   float barH = 12;
   
