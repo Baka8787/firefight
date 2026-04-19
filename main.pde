@@ -283,6 +283,10 @@ void keyPressed() {
   
   // 維持原設定：R 鍵無條件回到主畫面 (START)
   if (key == 'r' || key == 'R') {
+    if (currentState == State.SETTINGS && bridge != null && bridge.calibrating()) {
+      bridge.cancelDirectionCalibration();
+      return;
+    }
     resetToStart();
     return;
   }

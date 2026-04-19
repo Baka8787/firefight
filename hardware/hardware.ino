@@ -1,11 +1,11 @@
 #include <Wire.h>
 #include "Device.h"
 
-FireExtinguisher extinguisher(0x68, A0);
-FireHose hose(0x69, A1);
+FireExtinguisher extinguisher(0x69, A0); // High
+FireHose hose(0x68, A1); // Low
 
 unsigned long prevTime = 0, lastSend = 0;
-unsigned long sendInterval = 20;
+unsigned long sendInterval = 50;
 bool configured = false;
 
 void handleCommand(String cmd) {

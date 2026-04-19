@@ -4,7 +4,7 @@ SerialBridge bridge;
 
 class CalibrationData {
   int analogMin = 50, analogMax = 900;
-  float sensitivity = 10.0;
+  float sensitivity = 25.0;
 
   static final int CAL_POINT_COUNT = 9;
 
@@ -19,6 +19,7 @@ class CalibrationData {
 
   boolean calibrated = false;
   int calibrationStep = -1;
+  int calibrationStepStartedAt = 0;
 
   CalibrationData() {
     for (int i = 0; i < CAL_POINT_COUNT; i++) {
@@ -391,6 +392,25 @@ class SerialBridge {
     CalibrationData c = activeCal();
     c.calibrationStep = 0;
     c.calibrated = false;
+    c.calibrationStepStartedAt = app.millis();
+  }
+
+  void cancelDirectionCalibration() {
+    activeCal().calibrationStep = -1;
+  }
+
+  int calibrationStepDurationMillis() {
+    CalibrationData c = activeCal();
+    if (c.calibrationStep < 0) return 0;
+    return c.calibrationStep == 0 ? 5000 : 3000;
+  }
+
+  int calibrationCountdownSeconds() {
+    CalibrationData c = activeCal();
+    if (c.calibrationStep < 0) return 0;
+    int remain = calibrationStepDurationMillis() - (app.millis() - c.calibrationStepStartedAt);
+    if (remain <= 0) return 0;
+    return int(ceil(remain / 1000.0));
   }
 
   PVector captureStableVector() {
@@ -499,6 +519,16 @@ class SerialBridge {
     if (c.calibrationStep >= CalibrationData.CAL_POINT_COUNT) {
       c.calibrated = fitLinearModel(c);
       c.calibrationStep = -1;
+    } else {
+      c.calibrationStepStartedAt = app.millis();
+    }
+  }
+
+  void updateDirectionCalibration() {
+    CalibrationData c = activeCal();
+    if (c.calibrationStep < 0) return;
+    if (app.millis() - c.calibrationStepStartedAt >= calibrationStepDurationMillis()) {
+      captureDirectionCalibration();
     }
   }
 

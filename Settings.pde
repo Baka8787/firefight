@@ -78,7 +78,7 @@ void drawSettingsScreen() {
     (bridge != null && bridge.connected) ? "[Enter] 斷開" : "[← →] 選埠  [Enter] 連線",
     "[← →] 切換",
     "[← →] 切換 啟用 / 停用",
-    live ? (bridge.calibrating() ? "[Enter] 擷取目前點" : "[Enter] 開始校準") : "",
+    live ? (bridge.calibrating() ? "校準進行中" : "[Enter] 開始校準") : "",
     live ? lowHint : "",
     live ? highHint : "",
     "[← →] 調整"
@@ -192,27 +192,35 @@ void drawSettingsScreen() {
   }
 
   if (live && bridge.calibrating()) {
-    PVector p = bridge.calibrationGuidePoint();
+    bridge.updateDirectionCalibration();
 
-    fill(0, 0, 0, 180);
-    noStroke();
-    rect(0, 0, width, height);
+    if (bridge.calibrating()) {
+      PVector p = bridge.calibrationGuidePoint();
 
-    fill(255);
-    textAlign(CENTER, CENTER);
-    textSize(28);
-    text("請將" + bridge.calibrationDeviceName() + "對準螢幕" + bridge.calibrationStepLabel(), width / 2, height / 2 - 40);
+      fill(0, 0, 0, 180);
+      noStroke();
+      rect(0, 0, width, height);
 
-    textSize(18);
-    fill(200);
-    text("穩定後按 Enter 擷取，系統會用九個點建立目前握法模型", width / 2, height / 2);
+      fill(255);
+      textAlign(CENTER, CENTER);
+      textSize(28);
+      text("請將" + bridge.calibrationDeviceName() + "對準螢幕" + bridge.calibrationStepLabel(), width / 2, height / 2 - 56);
 
-    stroke(0, 255, 100);
-    strokeWeight(3);
-    noFill();
-    ellipse(p.x, p.y, 50, 50);
-    line(p.x - 20, p.y, p.x + 20, p.y);
-    line(p.x, p.y - 20, p.x, p.y + 20);
+      textSize(24);
+      fill(0, 255, 100);
+      text("倒數 " + bridge.calibrationCountdownSeconds() + " 秒後自動擷取", width / 2, height / 2 - 12);
+
+      textSize(18);
+      fill(200);
+      text("第一點 5 秒，其餘各點 3 秒，按 R 可中斷", width / 2, height / 2 + 24);
+
+      stroke(0, 255, 100);
+      strokeWeight(3);
+      noFill();
+      ellipse(p.x, p.y, 50, 50);
+      line(p.x - 20, p.y, p.x + 20, p.y);
+      line(p.x, p.y - 20, p.x, p.y + 20);
+    }
   }
 
   fill(0, 255, 100);
@@ -268,10 +276,7 @@ void handleSettingsKey() {
         }
         break;
       case 3:
-        if (bridge.ready) {
-          if (!bridge.calibrating()) bridge.beginDirectionCalibration();
-          else bridge.captureDirectionCalibration();
-        }
+        if (bridge.ready && !bridge.calibrating()) bridge.beginDirectionCalibration();
         break;
       case 4:
         if (bridge.ready) bridge.calibrateAnalogMin();
