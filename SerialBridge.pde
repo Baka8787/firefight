@@ -260,15 +260,6 @@ class SerialBridge {
     return constrain(map(raw, low, high, 0, 1), 0, 1);
   }
 
-  float analogNormalized() {
-    CalibrationData c = activeCal();
-    return normalizeFromRange(activeAnalog(), c.analogMin, c.analogMax);
-  }
-
-  int analogMapped() {
-    return int(analogNormalized() * 1023);
-  }
-
   float extAnalogNormalized() {
     return normalizeFromRange(extAnalog, extCal.analogMin, extCal.analogMax);
   }
@@ -293,31 +284,6 @@ class SerialBridge {
 
   boolean gamePressing() {
     if (currentGameDeviceActive()) return gameAnalogNormalized() > 0.01;
-    return app.mousePressed;
-  }
-
-  boolean extControlActive() {
-    return extEnabled && extFresh() && extCal.analogMax != extCal.analogMin;
-  }
-
-  boolean hoseControlActive() {
-    return hoseEnabled && hoseFresh() && hoseCal.analogMax != hoseCal.analogMin;
-  }
-
-  float extControlNormalized() {
-    if (extControlActive()) return extAnalogNormalized();
-    return app.mousePressed ? 1.0 : 0.0;
-  }
-
-  int hoseControlMapped() {
-    if (hoseControlActive()) {
-      return int(hoseAnalogNormalized() * 1023);
-    }
-    return app.mousePressed ? 800 : 100;
-  }
-
-  boolean extPressing() {
-    if (extControlActive()) return extControlNormalized() > 0.01;
     return app.mousePressed;
   }
 
