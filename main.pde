@@ -4,13 +4,16 @@
  */
  
  
+import processing.video.*; // 引入 Processing 官方影片播放庫
+
+
 //新增:音效
 import processing.sound.*;
 SoundFile bgm;
 SoundFile waterSfx;
 
 // 系統狀態定義
-enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS,QUIZ }
+enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS, QUIZ, VIDEO_PLAY }
 enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
 enum Agent { WATER, POWDER, CO2, METAL }
 State currentState = State.START;
@@ -169,6 +172,7 @@ void draw() {
     case INSTRUCTIONS: drawInstructionsScreen(); break;
     case SETTINGS: drawSettingsScreen(); break;
     case QUIZ: drawQuizScreen(); break;
+    case VIDEO_PLAY: drawVideoScreen(); break;
   }
 }
 
@@ -286,6 +290,10 @@ void keyPressed() {
   if (key == 'r' || key == 'R') {
     if (currentState == State.SETTINGS && bridge != null && bridge.calibrating()) {
       bridge.cancelDirectionCalibration();
+      return;
+    }
+    if (currentState == State.VIDEO_PLAY) {
+      returnToInstructions();
       return;
     }
     resetToStart();
@@ -411,7 +419,6 @@ void mouseWheel(MouseEvent event) {
 
 // === main.pde 教學範例操作與影片中新增滑鼠點擊事件 ===
 void mousePressed() {
-  // 只有在「教學範例」畫面才偵測這五個按鈕的點擊
   if (currentState == State.INSTRUCTIONS) {
     float btnWidth = 280;
     float btnHeight = 60;
@@ -420,38 +427,50 @@ void mousePressed() {
     float startX = width / 2 - btnWidth / 2;
     float startY = height / 2 - totalHeight / 2 + 30;
 
-    String[] btnNames = {"操作範例", "5個問答", "滅火方式", "A,B類火災", "B,C類火災"};
-
     for (int i = 0; i < 5; i++) {
       float bx = startX;
       float by = startY + i * (btnHeight + spacing);
       
-      // 檢查滑鼠點擊的位置是否在該垂直按鈕的範圍內
-      if (mouseX >= bx && mouseX <= bx + btnWidth && 
-          mouseY >= by && mouseY <= by + btnHeight) {
-            
-        println("點擊了功能按鈕: " + btnNames[i] + " (索引值: " + i + ")");
-        
-        // 依據點擊的按鈕索引值 (0 到 4) 實作對應功能
+      if (mouseX >= bx && mouseX <= bx + btnWidth && mouseY >= by && mouseY <= by + btnHeight) {
         switch(i) {
           case 0: // 操作範例
-            // TODO: 開啟操作範例邏輯
             break;
           case 1: // 5個問答
             initQuiz();
             currentState = State.QUIZ;
             break;
+          // 🌟 這裡修改：串接三個影片按鈕，並暫停背景 BGM 避免聲音重疊
           case 2: // 滅火方式
+            startVideo("use.mp4");
+            if (bgm != null && bgm.isPlaying()) bgm.pause();
+            currentState = State.VIDEO_PLAY;
             break;
           case 3: // A,B類火災
+            startVideo("fire1.mp4");
+            if (bgm != null && bgm.isPlaying()) bgm.pause();
+            currentState = State.VIDEO_PLAY;
             break;
           case 4: // B,C類火災
+            startVideo("fire2.mp4");
+            if (bgm != null && bgm.isPlaying()) bgm.pause();
+            currentState = State.VIDEO_PLAY;
             break;
         }
       }
     }
-  }
+  } 
   else if (currentState == State.QUIZ) {
     handleQuizClick();
   }
+  // 🌟 這裡新增：串接影片播放結束後的按鈕點擊
+  else if (currentState == State.VIDEO_PLAY) {
+    handleVideoPlayerClick();
+  }
+}
+
+
+
+// === Processing 影片播放必備事件 ===
+void movieEvent(Movie m) {
+  m.read();
 }
