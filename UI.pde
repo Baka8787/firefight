@@ -571,6 +571,9 @@ void drawGameplayUI() {
 /**
  * 繪製遊戲說明畫面（已改為 5 個影片/操作選擇按鈕）
  */
+/**
+ * 繪製教學範例畫面（已改為垂直排列與自訂名稱按鈕）
+ */
 void drawInstructionsScreen() {
   pushStyle();
   // 畫一個半透明黑底，蓋在原本的畫面上
@@ -584,45 +587,49 @@ void drawInstructionsScreen() {
   textFont(mainFont);
   text("教學範例", width/2, 60);
 
-  // --- 按鈕排版設定 ---
-  float btnWidth = 120;  // 按鈕寬度
-  float btnHeight = 80;  // 按鈕高度
-  float spacing = 30;    // 按鈕間距
-  // 計算總寬度，讓按鈕群能完美置中
-  float totalWidth = (5 * btnWidth) + (4 * spacing);
-  float startX = (width - totalWidth) / 2;
-  float startY = height / 2 - 40; // 垂直置中微調
+  // --- 按鈕外觀與排版設定 ---
+  String[] btnNames = {"操作範例", "5個問答", "滅火方式", "A,B類火災", "B,C類火災"};
+  float btnWidth = 280;  // 加寬按鈕以容納中文字
+  float btnHeight = 60;  // 按鈕高度
+  float spacing = 20;    // 垂直間距
+  
+  // 計算總高度以進行垂直置中
+  float totalHeight = (5 * btnHeight) + (4 * spacing);
+  float startX = width / 2 - btnWidth / 2;
+  float startY = height / 2 - totalHeight / 2 + 30; // 稍微向下修正以避開標題
 
-  // --- 繪製 5 個按鈕 ---
+  // --- 繪製 5 個垂直按鈕 ---
   for (int i = 0; i < 5; i++) {
-    float bx = startX + i * (btnWidth + spacing);
-    float by = startY;
+    float bx = startX;
+    float by = startY + i * (btnHeight + spacing);
     
     // 判斷滑鼠是否懸停在當前按鈕上
     boolean isHover = (mouseX >= bx && mouseX <= bx + btnWidth && 
                        mouseY >= by && mouseY <= by + btnHeight);
 
-    // 依據懸停狀態改變按鈕顏色
+    // 依據懸停狀態改變按鈕視覺
     if (isHover) {
       fill(ACCENT_CYAN); // 懸停時變亮藍色
+      stroke(255);
+      strokeWeight(2);
     } else {
       fill(INFO_BLOCK_BG); // 預設半透明黑底
+      stroke(BORDER_SUBTLE);
+      strokeWeight(1.5);
     }
 
-    // 畫按鈕外框
-    stroke(BORDER_SUBTLE);
-    strokeWeight(2);
-    rect(bx, by, btnWidth, btnHeight, 15); // 15為圓角
+    // 畫按鈕外框（圓角半徑 12）
+    rect(bx, by, btnWidth, btnHeight, 12);
 
-    // 畫按鈕文字 (1, 2, 3, 4, 5)
+    // 畫按鈕文字
     if (isHover) {
-      fill(30); // 懸停時文字變深色
+      fill(30); // 懸停時文字變深色增加對比
     } else {
-      fill(255); // 預設白字
+      fill(TEXT_SECONDARY); // 預設淡灰色
     }
     textAlign(CENTER, CENTER);
-    textSize(32);
-    text(String.valueOf(i + 1), bx + btnWidth/2, by + btnHeight/2 - 5);
+    textSize(22); // 中文字體大小調整
+    text(btnNames[i], bx + btnWidth/2, by + btnHeight/2 - 4);
   }
 
   // --- 底部返回提示 ---

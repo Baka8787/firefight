@@ -10,7 +10,7 @@ SoundFile bgm;
 SoundFile waterSfx;
 
 // 系統狀態定義
-enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS }
+enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS,QUIZ }
 enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
 enum Agent { WATER, POWDER, CO2, METAL }
 State currentState = State.START;
@@ -168,6 +168,7 @@ void draw() {
     case RESULT: drawResultScreen(); break;
     case INSTRUCTIONS: drawInstructionsScreen(); break;
     case SETTINGS: drawSettingsScreen(); break;
+    case QUIZ: drawQuizScreen(); break;
   }
 }
 
@@ -407,31 +408,50 @@ void mouseWheel(MouseEvent event) {
 
 
 
+
 // === main.pde 教學範例操作與影片中新增滑鼠點擊事件 ===
 void mousePressed() {
   // 只有在「教學範例」畫面才偵測這五個按鈕的點擊
   if (currentState == State.INSTRUCTIONS) {
-    float btnWidth = 120;
-    float btnHeight = 80;
-    float spacing = 30;
-    float totalWidth = (5 * btnWidth) + (4 * spacing);
-    float startX = (width - totalWidth) / 2;
-    float startY = height / 2 - 40;
+    float btnWidth = 280;
+    float btnHeight = 60;
+    float spacing = 20;
+    float totalHeight = (5 * btnHeight) + (4 * spacing);
+    float startX = width / 2 - btnWidth / 2;
+    float startY = height / 2 - totalHeight / 2 + 30;
+
+    String[] btnNames = {"操作範例", "5個問答", "滅火方式", "A,B類火災", "B,C類火災"};
 
     for (int i = 0; i < 5; i++) {
-      float bx = startX + i * (btnWidth + spacing);
-      float by = startY;
+      float bx = startX;
+      float by = startY + i * (btnHeight + spacing);
       
-      // 檢查滑鼠點擊的位置是否在該按鈕的範圍內
+      // 檢查滑鼠點擊的位置是否在該垂直按鈕的範圍內
       if (mouseX >= bx && mouseX <= bx + btnWidth && 
           mouseY >= by && mouseY <= by + btnHeight) {
             
-        int buttonNumber = i + 1;
-        println("點擊了教學按鈕: " + buttonNumber);
+        println("點擊了功能按鈕: " + btnNames[i] + " (索引值: " + i + ")");
         
-        // TODO: 在這裡加入點擊後的邏輯
-        // if (buttonNumber == 1) { 播放影片1... }
+        // 依據點擊的按鈕索引值 (0 到 4) 實作對應功能
+        switch(i) {
+          case 0: // 操作範例
+            // TODO: 開啟操作範例邏輯
+            break;
+          case 1: // 5個問答
+            initQuiz();
+            currentState = State.QUIZ;
+            break;
+          case 2: // 滅火方式
+            break;
+          case 3: // A,B類火災
+            break;
+          case 4: // B,C類火災
+            break;
+        }
       }
     }
+  }
+  else if (currentState == State.QUIZ) {
+    handleQuizClick();
   }
 }
