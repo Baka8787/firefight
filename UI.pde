@@ -118,7 +118,7 @@ void drawMissionSelectScreen() {
   pushStyle();
   textAlign(CENTER, CENTER);
   
-  // 1. 標題：稍微再往上移一點，騰出空間給下方的卡片
+  // 1. 標題
   fill(255);
   textSize(32);
   text("請選擇訓練任務", width/2, 60); 
@@ -126,8 +126,6 @@ void drawMissionSelectScreen() {
   // 2. 任務卡片繪製 (前 5 個一般任務)
   for (int i = 0; i < missions.length; i++) {
     float x = width/2;
-    
-    // ---> 關鍵修改：起始高度改為 130，間隔縮小為 85 <---
     float y = 130 + i * 85; 
 
     // 選中效果
@@ -140,7 +138,6 @@ void drawMissionSelectScreen() {
       noStroke();
     }
     
-    // 卡片高度也稍微縮減為 75，讓視覺更輕盈不擁擠
     rect(x - 250, y - 37, 500, 75, 15);
     
     fill(255);
@@ -151,12 +148,12 @@ void drawMissionSelectScreen() {
     text(missions[i].description, x, y + 15);
   }
   
-  // 3. ---> 新增：畫出第 6 個選項（遊戲說明指南） <---
+  // 3. ---> 🌟 關鍵修改：改名為「教學範例」，移除變方塊的 Emoji 🌟 <---
   int instructionIdx = missions.length; // 它的索引值會是 5
   float instX = width/2;
-  float instY = 130 + instructionIdx * 85; // 套用跟上面一樣的間距公式
+  float instY = 130 + instructionIdx * 85; 
 
-  // 說明的選中效果 (用專屬的黃色高亮，跟任務做區分)
+  // 說明的選中效果
   if (instructionIdx == selectedMissionIdx) {
     fill(255, 200, 0, 100); 
     stroke(255, 200, 0);
@@ -169,7 +166,8 @@ void drawMissionSelectScreen() {
 
   fill(255, 200, 0);
   textSize(22);
-  text("📖 遊戲說明指南", instX, instY);
+  // 將原本的 "📖 遊戲說明指南" 改為不漏字的箭頭符號與新名稱
+  text("教學範例操作與影片", instX, instY);
 
   // 4. 硬體設定選項
   int hwIdx = missions.length + 1;
@@ -190,7 +188,7 @@ void drawMissionSelectScreen() {
   textSize(22);
   text("硬體設定", hwX, hwY);
 
-  // 5. 操作提示 (稍微往下放一點，並改為確認)
+  // 5. 操作提示
   fill(255, 200, 0);
   textSize(16);
   text("使用上下鍵 [↑][↓] 切換，按 [Enter] 確認", width/2, height - 30); 
@@ -568,13 +566,15 @@ void drawGameplayUI() {
   drawSmartFeedback();
 }
 
+
+
 /**
- * 繪製遊戲說明畫面（優化版）
+ * 繪製遊戲說明畫面（已改為 5 個影片/操作選擇按鈕）
  */
 void drawInstructionsScreen() {
   pushStyle();
   // 畫一個半透明黑底，蓋在原本的畫面上
-  fill(OVERLAY_DARK); 
+  fill(OVERLAY_DARK);
   rect(0, 0, width, height);
 
   // --- 標題區 ---
@@ -582,63 +582,48 @@ void drawInstructionsScreen() {
   textAlign(CENTER, TOP);
   textSize(40);
   textFont(mainFont);
-  text("【 消 防 演 練 指 南 】", width/2, 60);
+  text("教學範例", width/2, 60);
 
-  // --- 內容排版設定 ---
-  textAlign(LEFT, TOP);
-  textSize(20);
-  float startX = width/2 - 380;
-  float startY = 140;
-  float lineSpace = 38;
+  // --- 按鈕排版設定 ---
+  float btnWidth = 120;  // 按鈕寬度
+  float btnHeight = 80;  // 按鈕高度
+  float spacing = 30;    // 按鈕間距
+  // 計算總寬度，讓按鈕群能完美置中
+  float totalWidth = (5 * btnWidth) + (4 * spacing);
+  float startX = (width - totalWidth) / 2;
+  float startY = height / 2 - 40; // 垂直置中微調
 
-  // --- 1. 觀察目標 ---
-  fill(TEXT_SECONDARY);
-  text("1. 選擇任務後，請觀察背景中的", startX, startY);
-  fill(STATUS_WARNING);
-  textSize(20);
-  text("起火點位置與火災類型", startX + 330, startY);
-  
-  // --- 2. 火災分類與藥劑 ---
-  textSize(20);
-  fill(TEXT_SECONDARY);
-  text("2. 判斷火災類型並選用正確藥劑：", startX, startY + lineSpace * 1.5f);
-  
-  // A類
-  textSize(18);
-  fill(getFireTypeColor(FireType.GENERAL));
-  text("   ▶ 普通火災 (木材、紙張)：", startX, startY + lineSpace * 2.5f);
-  fill(TEXT_WEAK);
-  text("推薦使用 水、乾粉", startX + 380, startY + lineSpace * 2.5f);
-  
-  // C類
-  fill(getFireTypeColor(FireType.ELECTRICAL));
-  text("   ▶ 電器火災 (插座、電箱)：", startX, startY + lineSpace * 3.5f);
-  fill(TEXT_WEAK);
-  text("推薦使用 乾粉、CO2", startX + 380, startY + lineSpace * 3.5f);
+  // --- 繪製 5 個按鈕 ---
+  for (int i = 0; i < 5; i++) {
+    float bx = startX + i * (btnWidth + spacing);
+    float by = startY;
+    
+    // 判斷滑鼠是否懸停在當前按鈕上
+    boolean isHover = (mouseX >= bx && mouseX <= bx + btnWidth && 
+                       mouseY >= by && mouseY <= by + btnHeight);
 
-  // B類
-  fill(getFireTypeColor(FireType.OIL));
-  text("   ▶ 油類火災 (廚房油鍋)：", startX, startY + lineSpace * 4.5f);
-  fill(TEXT_WEAK);
-  text("推薦使用 乾粉、CO2", startX + 380, startY + lineSpace * 4.5f);
+    // 依據懸停狀態改變按鈕顏色
+    if (isHover) {
+      fill(ACCENT_CYAN); // 懸停時變亮藍色
+    } else {
+      fill(INFO_BLOCK_BG); // 預設半透明黑底
+    }
 
-  // D類
-  fill(getFireTypeColor(FireType.METAL));
-  text("   ▶ 金屬火災 (活性金屬)：", startX, startY + lineSpace * 5.5f);
-  fill(STATUS_WARNING);
-  text("⚠️ 必須使用金屬專用藥劑", startX + 380, startY + lineSpace * 5.5f);
+    // 畫按鈕外框
+    stroke(BORDER_SUBTLE);
+    strokeWeight(2);
+    rect(bx, by, btnWidth, btnHeight, 15); // 15為圓角
 
-  // --- 3. 操作方式 ---
-  textSize(20);
-  fill(TEXT_SECONDARY);
-  text("3. 基礎操作方式：", startX, startY + lineSpace * 7.5f);
-  textSize(18);
-  fill(TEXT_WEAK);
-  text("   - 瞄準：移動滑鼠將準心對準火源根部", startX, startY + lineSpace * 8.5f);
-  text("   - 噴灑：按住滑鼠左鍵進行滅火", startX, startY + lineSpace * 9.5f);
-  
-  fill(ACCENT_CYAN);
-  text("   - 切換：按 1(水) / 2(乾粉) / 3(CO2) / 4(金屬藥劑)", startX, startY + lineSpace * 10.5f);
+    // 畫按鈕文字 (1, 2, 3, 4, 5)
+    if (isHover) {
+      fill(30); // 懸停時文字變深色
+    } else {
+      fill(255); // 預設白字
+    }
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    text(String.valueOf(i + 1), bx + btnWidth/2, by + btnHeight/2 - 5);
+  }
 
   // --- 底部返回提示 ---
   fill(STATUS_SUCCESS);

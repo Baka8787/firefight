@@ -404,3 +404,34 @@ void mouseWheel(MouseEvent event) {
   // 調整數值，限制在 0-1023 之間
   mockSensorValue = constrain(mockSensorValue - e * 50, 0, 1023); 
 }
+
+
+
+// === main.pde 教學範例操作與影片中新增滑鼠點擊事件 ===
+void mousePressed() {
+  // 只有在「教學範例」畫面才偵測這五個按鈕的點擊
+  if (currentState == State.INSTRUCTIONS) {
+    float btnWidth = 120;
+    float btnHeight = 80;
+    float spacing = 30;
+    float totalWidth = (5 * btnWidth) + (4 * spacing);
+    float startX = (width - totalWidth) / 2;
+    float startY = height / 2 - 40;
+
+    for (int i = 0; i < 5; i++) {
+      float bx = startX + i * (btnWidth + spacing);
+      float by = startY;
+      
+      // 檢查滑鼠點擊的位置是否在該按鈕的範圍內
+      if (mouseX >= bx && mouseX <= bx + btnWidth && 
+          mouseY >= by && mouseY <= by + btnHeight) {
+            
+        int buttonNumber = i + 1;
+        println("點擊了教學按鈕: " + buttonNumber);
+        
+        // TODO: 在這裡加入點擊後的邏輯
+        // if (buttonNumber == 1) { 播放影片1... }
+      }
+    }
+  }
+}
