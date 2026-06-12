@@ -18,6 +18,7 @@ enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
 enum Agent { WATER, POWDER, CO2, METAL }
 State currentState = State.START;
 boolean debugMode = false;
+boolean isSandbox = false;
 
 // 字型宣告
 PFont mainFont;
@@ -179,14 +180,17 @@ void draw() {
 /**
  * 更新模擬邏輯：包含座標插值與滅火判定
  */
-  void updateSimulation() {
+void updateSimulation() {
   // 0. 更新計時器
   updateTimer();
-  
-  // 如果時間已到，顯示失敗
-  if (remainingTime <= 0) {
-    currentState = State.RESULT;
-    return;
+  // 0. 更新計時器 (只有非沙盒模式才受時間限制)
+  if (!isSandbox) {
+    updateTimer();
+    // 如果時間已到，顯示失敗
+    if (remainingTime <= 0) {
+      currentState = State.RESULT;
+      return;
+    }
   }
   
   // 如果火已滅，顯示成功
@@ -397,6 +401,7 @@ void initializeSelectedMission() {
  */
 void resetToStart() {
   currentState = State.START;
+  isSandbox = false;
   fireHealth = 100.0f; 
   extinguisherPressure = 100.0f; 
   remainingTime = 180; 
@@ -434,6 +439,34 @@ void mousePressed() {
       if (mouseX >= bx && mouseX <= bx + btnWidth && mouseY >= by && mouseY <= by + btnHeight) {
         switch(i) {
           case 0: // 操作範例
+            isSandbox = true;
+            selectedMissionIdx = 0; // 借用普通火災(pic0)的場景
+            
+            remainingTime = 9999;   // 鎖定時間
+            fireHealth = 100.0f;
+            extinguisherPressure = 100.0f; // 鎖定滿壓力
+            
+            // 刻意將初始藥劑設為 CO2，強迫玩家練習切換
+            currentAgent = Agent.CO2; 
+            
+            // 清除舊資料
+            fireSources.clear(); 
+            particles.clear();
+            fireParticles.clear();
+            
+            // 強制只在 {880, 450} 生成單一 A 類火源
+            float x = manualCoords[0][0][0]; 
+            float y = manualCoords[0][0][1]; 
+            FireType type = manualFireTypes[0][0]; 
+            
+            fireSources.add(new FireSource(new PVector(x, y - 30), type, true));
+            currentFireType = type;
+            firePos = new PVector(x, y - 30);
+            
+            // 進入遊戲狀態
+            currentState = State.PLAYING; 
+            lastTimeUpdate = millis();
+            if (bgm.isPlaying()) bgm.stop();
             break;
           case 1: // 5個問答
             initQuiz();

@@ -97,6 +97,7 @@ void drawGridDecoration() {
  * 繪製頂部狀態欄（計時器 & 壓力表）
  */
 void drawTopStatus() {
+  if (isSandbox) return;
   // 左上：計時器
   int minutes = remainingTime / 60;
   int seconds = remainingTime % 60;
@@ -456,79 +457,89 @@ void drawResultScreen() {
   pushStyle();
   textFont(mainFont);
   
-  // 半透明黑底遮罩
   fill(OVERLAY_DARK);
   rect(0, 0, width, height);
-  
-  // 取得當前任務的總時間限制
-  int totalMissionTime = missions[selectedMissionIdx].timeLimit;
-  float timeRatio = (float)remainingTime / totalMissionTime;
-  
-  // 設定文字完全置中對齊
   textAlign(CENTER, CENTER);
 
-  if (fireHealth <= 0 && remainingTime > 0) {
-    // === 滅火成功：根據時間比例給予 A, B, C 評級 ===
-    String grade = "";
-    color gradeColor;
-    String feedbackMsg = "";
-
-    if (timeRatio > 0.75f) {
-      grade = "A";
-      gradeColor = STATUS_SUCCESS;
-      feedbackMsg = "完美撲滅！反應迅速，你是天生的打火英雄！";
-    } else if (timeRatio > 0.50f) {
-      grade = "B";
-      gradeColor = STATUS_WARNING;
-      feedbackMsg = "表現不錯！火勢已順利受控，下次可以再快一點喔！";
-    } else {
-      grade = "C";
-      gradeColor = color(255, 150, 100);
-      feedbackMsg = "好險！千鈞一髮完成任務，請再多熟悉藥劑與瞄準技巧！";
-    }
-
-    // 1. 顯示成功標題
+  if (isSandbox) {
+    // =========================================================
+    // 🌟 沙盒模式專屬結算畫面
+    // =========================================================
     textSize(36);
     fill(STATUS_SUCCESS);
-    text("[✓] 任務成功！火災已撲滅", width/2, height/2 - 120);
-
-    // 2. 顯示評級大字
-    textSize(100);
-    fill(gradeColor);
-    text(grade, width/2, height/2 - 10);
-
-    // 3. 顯示回饋語
-    textSize(20);
-    fill(color(220, 220, 180));
-    text(feedbackMsg, width/2, height/2 + 60);
-
-    // 4. 顯示詳細用時
-    textSize(16);
+    text("[✓] 體驗完成！已成功撲滅體驗火源", width/2, height/2 - 130);
+    
+    fill(ACCENT_YELLOW);
+    textSize(26);
+    text("【消防核心知識說明】", width/2, height/2 - 60);
+    
     fill(TEXT_SECONDARY);
-    int timeUsed = totalMissionTime - remainingTime;
-    text("任務用時: " + timeUsed + "秒  |  總時限: " + totalMissionTime + "秒", width/2, height/2 + 110);
+    textSize(20);
+    String explanationText = "本練習所使用的是「A類普通火災」（由木材、紙張或棉布引起）。\n\n" +
+                             "1. 滅火要領：使用水基滅火劑時，應將噴嘴瞄準火焰的「根部」左右掃射。\n" +
+                             "2. 物理反饋：直接瞄準上方火焰無法有效降溫，滅火效率會大幅遞減。\n" +
+                             "3. 實戰建議：請記住「拉、瞄、壓、掃」口訣，在實戰任務中注意時限與壓力消耗。";
+    text(explanationText, width/2, height/2 + 60);
 
   } else {
-    // === 滅火失敗：時間歸零 ===
+    // =========================================================
+    // 原有的正式任務評級判定邏輯 (保持不變)
+    // =========================================================
+    int totalMissionTime = missions[selectedMissionIdx].timeLimit;
+    float timeRatio = (float)remainingTime / totalMissionTime;
     
-    // 1. 顯示失敗標題
-    textSize(36);
-    fill(STATUS_DANGER);
-    text("[✗] 任務失敗！時間已用盡", width/2, height/2 - 120);
-    
-    // 2. 顯示 F 評級
-    textSize(100);
-    fill(STATUS_CRITICAL); 
-    text("F", width/2, height/2 - 10);
-    
-    // 3. 顯示失敗回饋語
-    textSize(20);
-    fill(color(255, 180, 180)); 
-    text("挑戰失敗！火勢已失控，請記住各類火災的", width/2, height/2 + 50);
-    text("正確應對方式，再來一次！", width/2, height/2 + 80);
+    if (fireHealth <= 0 && remainingTime > 0) {
+      String grade = "";
+      color gradeColor;
+      String feedbackMsg = "";
+
+      if (timeRatio > 0.75f) {
+        grade = "A";
+        gradeColor = STATUS_SUCCESS;
+        feedbackMsg = "完美撲滅！反應迅速，你是天生的打火英雄！";
+      } else if (timeRatio > 0.50f) {
+        grade = "B";
+        gradeColor = STATUS_WARNING;
+        feedbackMsg = "表現不錯！火勢已順利受控，下次可以再快一點喔！";
+      } else {
+        grade = "C";
+        gradeColor = color(255, 150, 100);
+        feedbackMsg = "好險！千鈞一髮完成任務，請再多熟悉藥劑與瞄準技巧！";
+      }
+
+      textSize(36);
+      fill(STATUS_SUCCESS);
+      text("[✓] 任務成功！火災已撲滅", width/2, height/2 - 120);
+
+      textSize(100);
+      fill(gradeColor);
+      text(grade, width/2, height/2 - 10);
+
+      textSize(20);
+      fill(color(220, 220, 180));
+      text(feedbackMsg, width/2, height/2 + 60);
+
+      textSize(16);
+      fill(TEXT_SECONDARY);
+      int timeUsed = totalMissionTime - remainingTime;
+      text("任務用時: " + timeUsed + "秒  |  總時限: " + totalMissionTime + "秒", width/2, height/2 + 110);
+    } else {
+      textSize(36);
+      fill(STATUS_DANGER);
+      text("[✗] 任務失敗！時間已用盡", width/2, height/2 - 120);
+      
+      textSize(100);
+      fill(STATUS_CRITICAL);
+      text("F", width/2, height/2 - 10);
+      
+      textSize(20);
+      fill(color(255, 180, 180)); 
+      text("挑戰失敗！火勢已失控，請記住各類火災的", width/2, height/2 + 50);
+      text("正確應對方式，再來一次！", width/2, height/2 + 80);
+    }
   }
 
-  // 底部重新開始提示
+  // 底部返回提示
   textSize(18);
   fill(ACCENT_YELLOW);
   text("▶ 按 [R] 鍵返回主畫面 ◀", width/2, height - 60);
@@ -564,6 +575,8 @@ void drawGameplayUI() {
   
   // 繪製智能反饋提示（中央）
   drawSmartFeedback();
+  
+  drawSandboxTutorialUI(); //  新增：渲染教學文字
 }
 
 
@@ -637,6 +650,48 @@ void drawInstructionsScreen() {
   textAlign(CENTER, BOTTOM);
   textSize(20);
   text("按 [R] 鍵返回主畫面", width/2, height - 40);
+
+  popStyle();
+}
+
+
+
+/**
+ * 繪製沙盒模式的互動式教學引導
+ */
+void drawSandboxTutorialUI() {
+  if (!isSandbox) return;
+
+  // 階段三：火已受傷，隱藏文字讓玩家專心滅火
+  if (fireHealth < 99.9f) return;
+
+  pushStyle();
+  textFont(mainFont);
+  textAlign(CENTER, CENTER);
+
+  // 繪製半透明底框
+  float boxW = 850;
+  float boxH = 70;
+  float boxX = width/2 - boxW/2;
+  float boxY = 120; // 顯示在畫面上方
+
+  fill(INFO_BLOCK_BG);
+  stroke(BORDER_SUBTLE);
+  strokeWeight(2);
+  rect(boxX, boxY, boxW, boxH, 12);
+
+  textSize(26);
+
+  if (currentAgent != Agent.WATER) {
+    // 階段一：要求切換藥劑
+    fill(ACCENT_YELLOW);
+    text("這是由木材紙張引起的A類火災，請按數字鍵 [1] 將滅火器調至 Water", width/2, boxY + boxH/2 - 4);
+    
+  } else {
+    // 階段二：要求噴灑
+    fill(STATUS_SUCCESS);
+    text("正確！現在請將準心對準火焰根部，並按下開關開始滅火", width/2, boxY + boxH/2 - 4);
+  }
 
   popStyle();
 }
