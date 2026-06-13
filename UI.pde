@@ -1,7 +1,7 @@
 /**
  * UI.pde
  * 所有純繪製介面組件，只讀全域變數，不修改任何狀態
- * 
+ *
  * 改進版本：現代簡約 HUD 風格
  * - 模組化資訊區塊
  * - 優化配色與層次感
@@ -24,27 +24,27 @@
  */
 void drawInfoBlock(float x, float y, float w, float h, String label, String value, color valColor) {
   pushStyle();
-  
+
   // 背景框（使用統一的配色常數）
   fill(INFO_BLOCK_BG);
   stroke(BORDER_SUBTLE);
   strokeWeight(1);
   rect(x, y, w, h, 8); // 8px 圓角
-  
+
   // 標籤文字（上方）
   fill(TEXT_SECONDARY);
   textSize(12);
   textAlign(LEFT, TOP);
   textFont(mainFont);
   text(label, x + 10, y + 8);
-  
+
   // 數值文字（右下方，加粗視覺）
   fill(valColor);
   textSize(20);
   textAlign(RIGHT, BOTTOM);
   textFont(mainFont);
   text(value, x + w - 10, y + h - 6);
-  
+
   popStyle();
 }
 
@@ -59,18 +59,18 @@ void drawInfoBlock(float x, float y, float w, float h, String label, String valu
  */
 void drawHorizontalBar(float x, float y, float w, float h, float percent, color barColor) {
   pushStyle();
-  
+
   // 背景條（深色）
   fill(BAR_BG);
   stroke(BORDER_SUBTLE);
   strokeWeight(1);
   rect(x, y, w, h, 4);
-  
+
   // 進度條（亮色）
   fill(barColor);
   noStroke();
   rect(x, y, w * constrain(percent, 0, 1), h, 4);
-  
+
   popStyle();
 }
 
@@ -81,7 +81,7 @@ void drawGridDecoration() {
   pushStyle();
   stroke(255, 20);
   strokeWeight(1);
-  
+
   float gridSize = 40;
   for (float x = 0; x < width; x += gridSize) {
     line(x, 0, x, height);
@@ -89,7 +89,7 @@ void drawGridDecoration() {
   for (float y = 0; y < height; y += gridSize) {
     line(0, y, width, y);
   }
-  
+
   popStyle();
 }
 
@@ -104,7 +104,7 @@ void drawTopStatus() {
   String timeStr = String.format("%02d:%02d", minutes, seconds);
   color timerColor = getTimerColor(remainingTime, missions[selectedMissionIdx].timeLimit);
   drawInfoBlock(880, 20, 160, 80, "剩余時間", timeStr, timerColor);
-  
+
   // 右上：壓力表（含進度條）
   color pressureColor = extinguisherPressure > 30 ? STATUS_SUCCESS : STATUS_DANGER;
   drawInfoBlock(width - 180, 20, 160, 110, "滅火器", (int)extinguisherPressure + "%", pressureColor);
@@ -118,29 +118,38 @@ void drawTopStatus() {
 void drawMissionSelectScreen() {
   pushStyle();
   textAlign(CENTER, CENTER);
-  
-  // 1. 標題
-  fill(255);
-  textSize(32);
-  text("請選擇訓練任務", width/2, 60); 
+  background(startBg);
 
-  // 2. 任務卡片繪製 (前 5 個一般任務)
+  float cardW = 500;          // 卡片寬度
+  float rightMargin = 30;     // 距離右邊界的留白
+  float cx = width - rightMargin - cardW / 2;  // 卡片中心 x(靠右)
+
+  fill(0, 100);
+  textSize(64);
+  text("虛擬滅火訓練系統", width/2 -300 + 3, height/3 + 3 - 100);
+
+  // 標題主色
+  fill(ACCENT_YELLOW);
+  text("虛擬滅火訓練系統", width/2 -300, height/3 - 100);
+
+  // 3. 英文副標
+  textSize(18);
+  fill(TEXT_SECONDARY);
+  text("Virtual Firefighting Training System v1.0", width/2-300, height/3 + 50 - 100);
+
+  // 2. 任務卡片
   for (int i = 0; i < missions.length; i++) {
-    float x = width/2;
-    float y = 130 + i * 85; 
-
-    // 選中效果
+    float x = cx;
+    float y = 100 + i * 85;
     if (i == selectedMissionIdx) {
-      fill(0, 150, 255, 100);
+      fill(0, 150, 255, 150);
       stroke(0, 200, 255);
       strokeWeight(3);
     } else {
       fill(60);
       noStroke();
     }
-    
-    rect(x - 250, y - 37, 500, 75, 15);
-    
+    rect(x - cardW/2, y - 37, cardW, 75, 15);
     fill(255);
     textSize(22);
     text(missions[i].name, x, y - 10);
@@ -148,68 +157,57 @@ void drawMissionSelectScreen() {
     fill(200);
     text(missions[i].description, x, y + 15);
   }
-  
-  // 3. ---> 🌟 關鍵修改：改名為「教學範例」，移除變方塊的 Emoji 🌟 <---
-  int instructionIdx = missions.length; // 它的索引值會是 5
-  float instX = width/2;
-  float instY = 130 + instructionIdx * 85; 
 
-  // 說明的選中效果
+  // 3. 教學範例
+  int instructionIdx = missions.length;
+  float instX = cx;
+  float instY = 100 + instructionIdx * 85;
   if (instructionIdx == selectedMissionIdx) {
-    fill(255, 200, 0, 100); 
+    fill(255, 200, 0, 150);
     stroke(255, 200, 0);
     strokeWeight(3);
   } else {
     fill(60);
     noStroke();
   }
-  rect(instX - 250, instY - 37, 500, 75, 15);
-
+  rect(instX - cardW/2, instY - 37, cardW, 75, 15);
   fill(255, 200, 0);
   textSize(22);
-  // 將原本的 "📖 遊戲說明指南" 改為不漏字的箭頭符號與新名稱
   text("教學範例操作與影片", instX, instY);
 
-  // 4. 硬體設定選項
+  // 4. 硬體設定
   int hwIdx = missions.length + 1;
-  float hwX = width/2;
-  float hwY = 130 + hwIdx * 85;
-
+  float hwX = cx;
+  float hwY = 100 + hwIdx * 85;
   if (hwIdx == selectedMissionIdx) {
-    fill(100, 200, 255, 100);
+    fill(100, 200, 255, 150);
     stroke(100, 200, 255);
     strokeWeight(3);
   } else {
     fill(60);
     noStroke();
   }
-  rect(hwX - 250, hwY - 37, 500, 75, 15);
-
+  rect(hwX - cardW/2, hwY - 37, cardW, 75, 15);
   fill(100, 200, 255);
   textSize(22);
   text("硬體設定", hwX, hwY);
-
-  // 5. 操作提示
-  fill(255, 200, 0);
-  textSize(16);
-  text("使用上下鍵 [↑][↓] 切換，按 [Enter] 確認", width/2, height - 30); 
 
   popStyle();
 }
 
 
 // === UI.pde ===
-void drawpictures(){
+void drawpictures() {
   PImage currentBg = missionPics[selectedMissionIdx];
   if (currentBg != null) {
     pushStyle();
     imageMode(CORNER);
-    
+
     // 畫背景 (保留你原本的 tint 設定)
-    tint(255, 150); 
+    tint(255, 150);
     image(currentBg, 0, 0, width, height);
-    
-    
+
+
     popStyle();
   }
 }
@@ -238,15 +236,27 @@ void drawCrosshair(float x, float y, float r) {
 void drawMissionInfo() {
   pushStyle();
   textFont(mainFont);
-  
+
   // 1. 根據目前任務類型決定顯示名稱
   String typeStr = "";
-  color fireColor = color(200,200,200);
+  color fireColor = color(200, 200, 200);
   switch(currentFireType) {
-    case GENERAL:    typeStr = "A類普通火災"; fireColor = getFireTypeColor(FireType.GENERAL); break;
-    case ELECTRICAL: typeStr = "C類電器火災"; fireColor = getFireTypeColor(FireType.ELECTRICAL); break;
-    case OIL:        typeStr = "B類油類火災"; fireColor = getFireTypeColor(FireType.OIL); break;
-    case METAL:      typeStr = "D類金屬火災"; fireColor = getFireTypeColor(FireType.METAL); break;
+  case GENERAL:
+    typeStr = "A類普通火災";
+    fireColor = getFireTypeColor(FireType.GENERAL);
+    break;
+  case ELECTRICAL:
+    typeStr = "C類電器火災";
+    fireColor = getFireTypeColor(FireType.ELECTRICAL);
+    break;
+  case OIL:
+    typeStr = "B類油類火災";
+    fireColor = getFireTypeColor(FireType.OIL);
+    break;
+  case METAL:
+    typeStr = "D類金屬火災";
+    fireColor = getFireTypeColor(FireType.METAL);
+    break;
   }
 
   // 2. 繪製更細長的半透明底框
@@ -273,34 +283,34 @@ void drawMissionInfo() {
 void drawProgressBar() {
   pushStyle();
   textFont(mainFont);
-  
+
   // 計算滅火進度百分比
   float progressPercent = 100 - fireHealth;
-  
+
   // 背景框與進度條容器
   float barX = width/2 - 180;
   float barY = 60;
   float barW = 360;
   float barH = 12;
-  
+
   // 進度條背景
   fill(BAR_BG);
   stroke(BORDER_SUBTLE);
   strokeWeight(1);
   rect(barX, barY, barW, barH, 6);
-  
+
   // 進度條前景（綠色）
   fill(BAR_PROGRESS_OK);
   noStroke();
   float progressW = map(progressPercent, 0, 100, 0, barW);
   rect(barX, barY, progressW, barH, 6);
-  
+
   // 進度百分比文字（置中於進度條中央）
   fill(TEXT_PRIMARY);
   textSize(14);
   textAlign(CENTER, CENTER);
   text(round(progressPercent) + "%", barX + barW/2, barY + barH/2);
-  
+
   popStyle();
 }
 
@@ -318,7 +328,7 @@ void drawTimer() {
 void drawEquipmentSection() {
   pushStyle();
   textFont(mainFont);
-  
+
   // 繪製背景框（使用新風格）
   fill(INFO_BLOCK_BG);
   stroke(BORDER_SUBTLE);
@@ -330,7 +340,7 @@ void drawEquipmentSection() {
   textSize(12);
   textAlign(LEFT, TOP);
   text("當前工具", 30, height - 105);
-  
+
   // 目前選中的藥劑名稱（使用藥劑對應色）
   fill(getAgentColor(currentAgent));
   textSize(18);
@@ -339,16 +349,13 @@ void drawEquipmentSection() {
   // --- 警告判定邏輯（使用柔紅色 #FF6464） ---
   fill(STATUS_DANGER);
   textSize(11);
-  
+
   if (currentFireType == FireType.GENERAL && (currentAgent == Agent.CO2 || currentAgent == Agent.METAL)) {
     text("⚠ 普通火災請用水或乾粉!", 30, height - 50);
-    
   } else if (currentFireType == FireType.ELECTRICAL && (currentAgent == Agent.WATER || currentAgent == Agent.METAL)) {
     text("⚠ 此藥劑對電器無效!", 30, height - 50);
-    
   } else if (currentFireType == FireType.OIL && (currentAgent == Agent.WATER || currentAgent == Agent.METAL)) {
     text("⚠ 此藥劑對油類無效!", 30, height - 50);
-    
   } else if (currentFireType == FireType.METAL && currentAgent != Agent.METAL) {
     text("⚠ 嚴重警告：金屬火災禁用此!!", 30, height - 50);
   }
@@ -377,13 +384,12 @@ void drawSmartFeedback() {
     textSize(16);
     textAlign(CENTER);
     text("⚠ 壓力不足，請用力按壓握把", width/2, height - 80);
-    
   } else {
     // 動態判斷是否瞄準太高
     // 遍歷所有起火點，檢查準心與起火點的高度差
     boolean aimingTooHigh = false;
     for (FireSource fs : fireSources) {
-      if (fs.active && (fs.pos.y - crosshairPos.y) > 60) { 
+      if (fs.active && (fs.pos.y - crosshairPos.y) > 60) {
         aimingTooHigh = true;
         break;
       }
@@ -401,62 +407,12 @@ void drawSmartFeedback() {
 }
 
 /**
- * 繪製開始畫面（優化版：科技感與引導性）
- */
-void drawStartScreen() {
-  background(BG_DARK);
-  
-  // 1. 繪製背景裝飾線（模擬網格）
-  drawGridDecoration(); 
-  
-  // 2. 標題與陰影效果
-  pushStyle();
-  textAlign(CENTER, CENTER);
-  textFont(mainFont);
-  
-  // 標題陰影
-  fill(0, 100);
-  textSize(64);
-  text("虛擬滅火訓練系統", width/2 + 3, height/3 + 3);
-  
-  // 標題主色
-  fill(ACCENT_YELLOW);
-  text("虛擬滅火訓練系統", width/2, height/3);
-  
-  // 3. 英文副標
-  textSize(18);
-  fill(TEXT_SECONDARY);
-  text("Virtual Firefighting Training System v1.0", width/2, height/3 + 50);
-  
-  // 4. 引導文字（閃爍效果）
-  textSize(22);
-  if (frameCount % 80 < 50) { // 每秒閃爍
-    fill(STATUS_WARNING);
-  } else {
-    fill(STATUS_WARNING, 50);
-  }
-  text(">>> 按任意鍵開始 <<<", width/2, height * 0.65);
-  
-  // 5. 操作提示（靜態文字）
-  textSize(16);
-  fill(color(150, 180, 220));
-  text("滑鼠移動瞄準  |  左鍵模擬按壓  |  數字鍵 1-4 切換藥劑", width/2, height * 0.75);
-  
-  // 6. 底部版權宣告
-  textSize(12);
-  fill(color(100, 120, 150));
-  text("Engineering & Safety Lab © 2024-2025", width/2, height - 30);
-  
-  popStyle();
-}
-
-/**
  * 繪製結果畫面（優化版：現代化與蘊感傳達）
  */
 void drawResultScreen() {
   pushStyle();
   textFont(mainFont);
-  
+
   fill(OVERLAY_DARK);
   rect(0, 0, width, height);
   textAlign(CENTER, CENTER);
@@ -468,26 +424,25 @@ void drawResultScreen() {
     textSize(36);
     fill(STATUS_SUCCESS);
     text("[✓] 體驗完成！已成功撲滅體驗火源", width/2, height/2 - 130);
-    
+
     fill(ACCENT_YELLOW);
     textSize(26);
     text("【消防核心知識說明】", width/2, height/2 - 60);
-    
+
     fill(TEXT_SECONDARY);
     textSize(20);
     String explanationText = "本練習所使用的是「A類普通火災」（由木材、紙張或棉布引起）。\n\n" +
-                             "1. 滅火要領：使用水基滅火劑時，應將噴嘴瞄準火焰的「根部」左右掃射。\n" +
-                             "2. 物理反饋：直接瞄準上方火焰無法有效降溫，滅火效率會大幅遞減。\n" +
-                             "3. 實戰建議：請記住「拉、瞄、壓、掃」口訣，在實戰任務中注意時限與壓力消耗。";
+      "1. 滅火要領：使用水基滅火劑時，應將噴嘴瞄準火焰的「根部」左右掃射。\n" +
+      "2. 物理反饋：直接瞄準上方火焰無法有效降溫，滅火效率會大幅遞減。\n" +
+      "3. 實戰建議：請記住「拉、瞄、壓、掃」口訣，在實戰任務中注意時限與壓力消耗。";
     text(explanationText, width/2, height/2 + 60);
-
   } else {
     // =========================================================
     // 原有的正式任務評級判定邏輯 (保持不變)
     // =========================================================
     int totalMissionTime = missions[selectedMissionIdx].timeLimit;
     float timeRatio = (float)remainingTime / totalMissionTime;
-    
+
     if (fireHealth <= 0 && remainingTime > 0) {
       String grade = "";
       color gradeColor;
@@ -527,13 +482,13 @@ void drawResultScreen() {
       textSize(36);
       fill(STATUS_DANGER);
       text("[✗] 任務失敗！時間已用盡", width/2, height/2 - 120);
-      
+
       textSize(100);
       fill(STATUS_CRITICAL);
       text("F", width/2, height/2 - 10);
-      
+
       textSize(20);
-      fill(color(255, 180, 180)); 
+      fill(color(255, 180, 180));
       text("挑戰失敗！火勢已失控，請記住各類火災的", width/2, height/2 + 50);
       text("正確應對方式，再來一次！", width/2, height/2 + 80);
     }
@@ -543,7 +498,7 @@ void drawResultScreen() {
   textSize(18);
   fill(ACCENT_YELLOW);
   text("▶ 按 [R] 鍵返回主畫面 ◀", width/2, height - 60);
-  
+
   popStyle();
 }
 
@@ -557,25 +512,25 @@ void drawResultScreen() {
 void drawGameplayUI() {
   // 繪製背景圖片
   drawpictures();
-  
+
   // 繪製頂部狀態欄（計時器 & 壓力表）
   drawTopStatus();
-  
+
   // 繪製左上角任務目標
   drawMissionInfo();
-  
+
   // 繪製中央進度條
   drawProgressBar();
-  
+
   // 繪製動態準心
   drawCrosshair(crosshairPos.x, crosshairPos.y, 30);
-  
+
   // 繪製左下角工具選擇區
   drawEquipmentSection();
-  
+
   // 繪製智能反饋提示（中央）
   drawSmartFeedback();
-  
+
   drawSandboxTutorialUI(); //  新增：渲染教學文字
 }
 
@@ -605,7 +560,7 @@ void drawInstructionsScreen() {
   float btnWidth = 280;  // 加寬按鈕以容納中文字
   float btnHeight = 60;  // 按鈕高度
   float spacing = 20;    // 垂直間距
-  
+
   // 計算總高度以進行垂直置中
   float totalHeight = (5 * btnHeight) + (4 * spacing);
   float startX = width / 2 - btnWidth / 2;
@@ -615,10 +570,10 @@ void drawInstructionsScreen() {
   for (int i = 0; i < 5; i++) {
     float bx = startX;
     float by = startY + i * (btnHeight + spacing);
-    
+
     // 判斷滑鼠是否懸停在當前按鈕上
-    boolean isHover = (mouseX >= bx && mouseX <= bx + btnWidth && 
-                       mouseY >= by && mouseY <= by + btnHeight);
+    boolean isHover = (mouseX >= bx && mouseX <= bx + btnWidth &&
+      mouseY >= by && mouseY <= by + btnHeight);
 
     // 依據懸停狀態改變按鈕視覺
     if (isHover) {
@@ -686,7 +641,6 @@ void drawSandboxTutorialUI() {
     // 階段一：要求切換藥劑
     fill(ACCENT_YELLOW);
     text("這是由木材紙張引起的A類火災，請按數字鍵 [1] 將滅火器調至 Water", width/2, boxY + boxH/2 - 4);
-    
   } else {
     // 階段二：要求噴灑
     fill(STATUS_SUCCESS);

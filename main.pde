@@ -2,8 +2,8 @@
  * Firefighting Training System - Core Logic
  * Language: Processing (Java-based)
  */
- 
- 
+
+
 import processing.video.*; // 引入 Processing 官方影片播放庫
 
 
@@ -13,10 +13,16 @@ SoundFile bgm;
 SoundFile waterSfx;
 
 // 系統狀態定義
-enum State { START, SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS, QUIZ, VIDEO_PLAY }
-enum FireType { GENERAL, ELECTRICAL, OIL, METAL }
-enum Agent { WATER, POWDER, CO2, METAL }
-State currentState = State.START;
+enum State {
+  SELECT_MISSION, PLAYING, RESULT, INSTRUCTIONS, SETTINGS, QUIZ, VIDEO_PLAY
+}
+enum FireType {
+  GENERAL, ELECTRICAL, OIL, METAL
+}
+enum Agent {
+  WATER, POWDER, CO2, METAL
+}
+State currentState = State.SELECT_MISSION;
 boolean debugMode = false;
 boolean isSandbox = false;
 
@@ -65,9 +71,12 @@ class Mission {
   int timeLimit;
   float initialHealth;
   String description;
-  
+
   Mission(String n, int time, float hp, String desc) {
-    name = n; timeLimit = time; initialHealth = hp; description = desc;
+    name = n;
+    timeLimit = time;
+    initialHealth = hp;
+    description = desc;
   }
 }
 
@@ -77,22 +86,24 @@ Mission[] missions;
 //新加:圖片
 PImage[] missionPics = new PImage[5];
 
+PImage startBg;
+
 PVector[][] furniturePositions = new PVector[5][5]; // 紀錄每個家具的 X, Y 座標
 // 新增：集中管理 25 個家具的精確座標 {X, Y}
 // 結構為：manualCoords[任務編號][家具編號][0是X, 1是Y]
 float[][][] manualCoords = {
   // 任務 0 (pic0) 的 5 個家具座標 {x, y}
   { {880, 450}, {300, 226}, {650, 430}, {500, 600}, {110, 480} },
-  
+
   // 任務 1 (pic1) 的 5 個家具座標
-  { {850, 280}, {1140, 480}, {650, 400}, {450,350}, {120, 440} },
-  
+  { {850, 280}, {1140, 480}, {650, 400}, {450, 350}, {120, 440} },
+
   // 任務 2 (pic2) 的 5 個家具座標
   { {136, 526}, {300, 400}, {950, 420}, {1200, 476}, {720, 300} },
-  
+
   // 任務 3 (pic3) 的 5 個家具座標
   { {1200, 400}, {150, 270}, {1000, 470}, {650, 600}, {300, 500} },
-  
+
   // 任務 4 (pic4) 的 5 個家具座標
   { {250, 550}, {600, 510}, {800, 450}, {400, 450}, {1100, 530} }
 };
@@ -114,37 +125,42 @@ FireType[][] manualFireTypes = {
 
 int selectedMissionIdx = 0;
 
+UIStage menuStage;
+
 void setup() {
   size(1280, 720);
   pixelDensity(1);
   mainFont = createFont("Microsoft JhengHei", 32);
   textFont(mainFont);
-  
+
   // ---> 新增：載入並開始循環播放音樂 <---
   bgm = new SoundFile(this, "VideoHead.mp3");
   bgm.loop();
-  
+
   waterSfx = new SoundFile(this, "water.mp3");
 
   // 初始化任務陣列 [cite: 99-100]
   missions = new Mission[5];
   missions[0] = new Mission("普通火災演練", 120, 100, "撲滅A類普通火災（木材、紙張）");
   missions[1] = new Mission("電器火災挑戰", 90, 80, "電氣火災嚴禁使用水基滅火劑");
-  missions[2] = new Mission("油類火災挑戰",  60, 150, "撲滅B類油類火災");
-  missions[3] = new Mission("金屬火災演練",  80, 120, "高難度:涉及活性金屬，禁水性物質");
+  missions[2] = new Mission("油類火災挑戰", 60, 150, "撲滅B類油類火災");
+  missions[3] = new Mission("金屬火災演練", 80, 120, "高難度:涉及活性金屬，禁水性物質");
   missions[4] = new Mission("緊急複合演練", 150, 200, "高難度：氣爆後火勢蔓延極快");
 
-// ---> 關鍵修改：加上 pic/ 資料夾路徑 <---
-  missionPics[0] = loadImage("pic/pic0.jpg"); 
+  // ---> 關鍵修改：加上 pic/ 資料夾路徑 <---
+  missionPics[0] = loadImage("pic/pic0.jpg");
   missionPics[1] = loadImage("pic/pic1.jpg");
   missionPics[2] = loadImage("pic/pic2.jpg");
-  missionPics[3] = loadImage("pic/pic3.jpg"); 
+  missionPics[3] = loadImage("pic/pic3.jpg");
   missionPics[4] = loadImage("pic/pic4.jpg");
-  
+
+  startBg = loadImage("start_bg.png");
+  startBg.resize(width, height);
+
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 5; j++) {
       // 載入圖片 (01.png ~ 45.png)
-      
+
       // ---> 關鍵修改：讀取我們手動設定好的陣列座標 <---
       float x = manualCoords[i][j][0];
       float y = manualCoords[i][j][1];
@@ -159,21 +175,37 @@ void setup() {
   bridge = new SerialBridge(this);
   bridge.refreshPorts();
   mockSensorValue = 512;
+
+  buildMenuStage();
 }
 
 void draw() {
   background(30);
   if (bridge != null) bridge.poll();
-  
+
   switch(currentState) {
-    case START: drawStartScreen(); break;
-    case SELECT_MISSION: drawMissionSelectScreen(); break; // 新增狀態
-    case PLAYING: updateSimulation(); drawGameUI(); break;
-    case RESULT: drawResultScreen(); break;
-    case INSTRUCTIONS: drawInstructionsScreen(); break;
-    case SETTINGS: drawSettingsScreen(); break;
-    case QUIZ: drawQuizScreen(); break;
-    case VIDEO_PLAY: drawVideoScreen(); break;
+  case SELECT_MISSION:
+    drawMissionSelectScreen();
+    break; // 新增狀態
+  case PLAYING:
+    updateSimulation();
+    drawGameUI();
+    break;
+  case RESULT:
+    drawResultScreen();
+    break;
+  case INSTRUCTIONS:
+    drawInstructionsScreen();
+    break;
+  case SETTINGS:
+    drawSettingsScreen();
+    break;
+  case QUIZ:
+    drawQuizScreen();
+    break;
+  case VIDEO_PLAY:
+    drawVideoScreen();
+    break;
   }
 }
 
@@ -192,29 +224,29 @@ void updateSimulation() {
       return;
     }
   }
-  
+
   // 如果火已滅，顯示成功
   if (fireHealth <= 0) {
     currentState = State.RESULT;
     return;
   }
-  
+
   // 1. 更新目標位置
   if (bridge != null && bridge.ready) {
     targetPos.set(bridge.targetX(), bridge.targetY());
   } else {
     targetPos.set(mouseX, mouseY);
   }
-  
+
   // 2. 準心平滑移動 (Linear Interpolation)
-  crosshairPos.lerp(targetPos, 0.2); 
+  crosshairPos.lerp(targetPos, 0.2);
 
   // 3. 類比感測器數據映射 (模擬數據)
   // 假設力道越大，半徑越小 (20px - 150px)
-  float sensorForce = getFilteredSensorData(); 
+  float sensorForce = getFilteredSensorData();
   sprayRadius = 50;
 
-  
+
   // 4. 噴灑與壓力邏輯分離
   if (isPressing()) {
     if (currentAgent == Agent.WATER) {
@@ -234,11 +266,11 @@ void updateSimulation() {
       }
     }
     checkExtinguishByCrosshair();
-    if (!waterSfx.isPlaying()) waterSfx.play(); 
+    if (!waterSfx.isPlaying()) waterSfx.play();
   } else {
     if (waterSfx.isPlaying()) waterSfx.stop();
   }
-  
+
   // 5. 更新並描繪粒子（關鍵！）
   for (int i = particles.size()-1; i >= 0; i--) {
     Particle p = particles.get(i);
@@ -249,7 +281,7 @@ void updateSimulation() {
       p.display(); // 確保粒子被繪製出來
     }
   }
-  
+
   // 6. 更新火焰粒子系統
   updateFireSystem();
 }
@@ -261,7 +293,7 @@ void updateSimulation() {
 void drawGameUI() {
   // 使用新的優化版UI系統
   drawGameplayUI();
-  
+
   // 繪製火焰效果（保留原有邏輯）
   drawFire();
   if (debugMode) drawFireDebug();
@@ -273,7 +305,7 @@ void drawGameUI() {
  */
 void updateTimer() {
   if (currentState != State.PLAYING) return;
-  
+
   int now = millis();
   if (now - lastTimeUpdate >= 1000) {
     remainingTime--;
@@ -289,8 +321,8 @@ void updateTimer() {
 
 void keyPressed() {
   int now = millis();
-  
-  // 維持原設定：R 鍵無條件回到主畫面 (START)
+
+  // 維持原設定：R 鍵無條件回到主畫面
   if (key == 'r' || key == 'R') {
     if (currentState == State.VIDEO_PLAY) {
       returnToInstructions();
@@ -302,59 +334,32 @@ void keyPressed() {
 
   switch (currentState) {
 
-    case START:
-      currentState = State.SELECT_MISSION;
-      break;
-      
-    case SELECT_MISSION:
-      // ---> 關鍵修改：選單總共有 7 個選項 (5個任務 + 說明 + 硬體設定) <---
-      int totalOptions = missions.length + 2; 
-      
-      if (keyCode == UP) {
-        selectedMissionIdx = (selectedMissionIdx - 1 + totalOptions) % totalOptions;
-      } 
-      else if (keyCode == DOWN) {
-        selectedMissionIdx = (selectedMissionIdx + 1) % totalOptions;
-      } 
-      else if (key == ENTER || key == RETURN) {
-        
-        // 判斷按 Enter 時，玩家停在哪個選項上
-        if (selectedMissionIdx < missions.length) {
-          // 如果選的是 0~4，進入一般訓練任務
-          initializeSelectedMission();
-          currentState = State.PLAYING;
-          lastTimeUpdate = millis();
-          if (bgm.isPlaying()) bgm.stop();
-        } 
-        else if (selectedMissionIdx == missions.length) {
-          currentState = State.INSTRUCTIONS;
-        }
-        else {
-          if (bridge != null) bridge.refreshPorts();
-          settingsIdx = 0;
-          currentState = State.SETTINGS;
-        }
+  case PLAYING:
+    if (now - lastAgentSwitch > agentSwitchCooldown) {
+      if (key == 't' || key == 'T') {
+        debugMode = !debugMode;
       }
-      break;
-
-    // (INSTRUCTIONS 狀態不需要寫，因為 R 鍵會把它帶回 START)
-      
-    case PLAYING:
-      if (now - lastAgentSwitch > agentSwitchCooldown) {
-        if (key == 't' || key == 'T') {
-          debugMode = !debugMode;
-        }
-        if (key == '1') { currentAgent = Agent.WATER; lastAgentSwitch = now; }
-        else if (key == '2') { currentAgent = Agent.POWDER; lastAgentSwitch = now; }
-        else if (key == '3') { currentAgent = Agent.CO2; lastAgentSwitch = now; }
-        // ---> 新增：按 4 切換為金屬滅火劑 <---
-        else if (key == '4') { currentAgent = Agent.METAL; lastAgentSwitch = now; }
+      if (key == '1') {
+        currentAgent = Agent.WATER;
+        lastAgentSwitch = now;
+      } else if (key == '2') {
+        currentAgent = Agent.POWDER;
+        lastAgentSwitch = now;
+      } else if (key == '3') {
+        currentAgent = Agent.CO2;
+        lastAgentSwitch = now;
       }
-      break;
+      // ---> 新增：按 4 切換為金屬滅火劑 <---
+      else if (key == '4') {
+        currentAgent = Agent.METAL;
+        lastAgentSwitch = now;
+      }
+    }
+    break;
 
-    case SETTINGS:
-      handleSettingsKey();
-      break;
+  case SETTINGS:
+    handleSettingsKey();
+    break;
   }
 }
 
@@ -365,26 +370,26 @@ void initializeSelectedMission() {
   Mission m = missions[selectedMissionIdx];
   remainingTime = m.timeLimit;
   fireHealth = m.initialHealth;
-  extinguisherPressure = 100.0f; 
-  
+  extinguisherPressure = 100.0f;
+
   // 1. 隨機決定哪一個家具是初始起火點
-  int randomIdx = int(random(5)); 
-  
+  int randomIdx = int(random(5));
+
   // 2. 清理舊有的火源與粒子 [cite: 147-148]
-  fireSources.clear(); 
+  fireSources.clear();
   particles.clear();
   fireParticles.clear();
-  
+
   // 3. 將該圖片對應的 5 個家具座標全部加入火源系統
   for (int i = 0; i < 5; i++) {
     float x = manualCoords[selectedMissionIdx][i][0];
     float y = manualCoords[selectedMissionIdx][i][1];
     FireType type = manualFireTypes[selectedMissionIdx][i];
-    
+
     // 只有隨機抽中的那個點是初始 active 的 [cite: 146]
     boolean isInitialFire = (i == randomIdx);
     fireSources.add(new FireSource(new PVector(x, y - 30), type, isInitialFire));
-    
+
     // 如果是起火點，同步設定當前任務的火災類型 (供 UI 顯示)
     if (isInitialFire) {
       currentFireType = type;
@@ -396,15 +401,15 @@ void initializeSelectedMission() {
  * 輔助函數：重置系統至初始狀態
  */
 void resetToStart() {
-  currentState = State.START;
+  currentState = State.SELECT_MISSION;
   isSandbox = false;
-  fireHealth = 100.0f; 
-  extinguisherPressure = 100.0f; 
-  remainingTime = 180; 
+  fireHealth = 100.0f;
+  extinguisherPressure = 100.0f;
+  remainingTime = 180;
   particles.clear();
-  fireParticles.clear(); 
-  
-  
+  fireParticles.clear();
+
+
   if (!bgm.isPlaying()) {
     bgm.loop();
   }
@@ -412,14 +417,63 @@ void resetToStart() {
 void mouseWheel(MouseEvent event) {
   float e = event.getCount(); // 滾輪向上為負，向下為正
   // 調整數值，限制在 0-1023 之間
-  mockSensorValue = constrain(mockSensorValue - e * 50, 0, 1023); 
+  mockSensorValue = constrain(mockSensorValue - e * 50, 0, 1023);
 }
 
 
 
 
 // === main.pde 教學範例操作與影片中新增滑鼠點擊事件 ===
+void buildMenuStage() {
+  menuStage = new UIStage(width, height);
+  int total = missions.length + 2;
+  for (int i = 0; i < total; i++) {
+    final int idx = i;
+    UINode option = menuStage.add(new UINode(width - 530, 100 + i * 85 - 37, 500, 75));
+    option.on("mouseenter", e -> {
+      selectedMissionIdx = idx;
+    }
+    );
+    option.on("click", e -> {
+      selectMissionOption(idx);
+    }
+    );
+  }
+}
+
+void selectMissionOption(int idx) {
+  selectedMissionIdx = idx;
+  if (idx < missions.length) {
+    initializeSelectedMission();
+    currentState = State.PLAYING;
+    lastTimeUpdate = millis();
+    if (bgm.isPlaying()) bgm.stop();
+  } else if (idx == missions.length) {
+    currentState = State.INSTRUCTIONS;
+  } else {
+    if (bridge != null) bridge.refreshPorts();
+    settingsIdx = 0;
+    currentState = State.SETTINGS;
+  }
+}
+
+void mouseMoved() {
+  if (currentState == State.SELECT_MISSION && menuStage != null) {
+    menuStage.moved(mouseX, mouseY);
+  }
+}
+
+void mouseReleased() {
+  if (currentState == State.SELECT_MISSION && menuStage != null) {
+    menuStage.released(mouseX, mouseY);
+  }
+}
+
 void mousePressed() {
+  if (currentState == State.SELECT_MISSION) {
+    if (menuStage != null) menuStage.pressed(mouseX, mouseY);
+    return;
+  }
   if (currentState == State.INSTRUCTIONS) {
     float btnWidth = 280;
     float btnHeight = 60;
@@ -431,64 +485,63 @@ void mousePressed() {
     for (int i = 0; i < 5; i++) {
       float bx = startX;
       float by = startY + i * (btnHeight + spacing);
-      
+
       if (mouseX >= bx && mouseX <= bx + btnWidth && mouseY >= by && mouseY <= by + btnHeight) {
         switch(i) {
-          case 0: // 操作範例
-            isSandbox = true;
-            selectedMissionIdx = 0; // 借用普通火災(pic0)的場景
-            
-            remainingTime = 9999;   // 鎖定時間
-            fireHealth = 100.0f;
-            extinguisherPressure = 100.0f; // 鎖定滿壓力
-            
-            // 刻意將初始藥劑設為 CO2，強迫玩家練習切換
-            currentAgent = Agent.CO2; 
-            
-            // 清除舊資料
-            fireSources.clear(); 
-            particles.clear();
-            fireParticles.clear();
-            
-            // 強制只在 {880, 450} 生成單一 A 類火源
-            float x = manualCoords[0][0][0]; 
-            float y = manualCoords[0][0][1]; 
-            FireType type = manualFireTypes[0][0]; 
-            
-            fireSources.add(new FireSource(new PVector(x, y - 30), type, true));
-            currentFireType = type;
-            firePos = new PVector(x, y - 30);
-            
-            // 進入遊戲狀態
-            currentState = State.PLAYING; 
-            lastTimeUpdate = millis();
-            if (bgm.isPlaying()) bgm.stop();
-            break;
-          case 1: // 5個問答
-            initQuiz();
-            currentState = State.QUIZ;
-            break;
+        case 0: // 操作範例
+          isSandbox = true;
+          selectedMissionIdx = 0; // 借用普通火災(pic0)的場景
+
+          remainingTime = 9999;   // 鎖定時間
+          fireHealth = 100.0f;
+          extinguisherPressure = 100.0f; // 鎖定滿壓力
+
+          // 刻意將初始藥劑設為 CO2，強迫玩家練習切換
+          currentAgent = Agent.CO2;
+
+          // 清除舊資料
+          fireSources.clear();
+          particles.clear();
+          fireParticles.clear();
+
+          // 強制只在 {880, 450} 生成單一 A 類火源
+          float x = manualCoords[0][0][0];
+          float y = manualCoords[0][0][1];
+          FireType type = manualFireTypes[0][0];
+
+          fireSources.add(new FireSource(new PVector(x, y - 30), type, true));
+          currentFireType = type;
+          firePos = new PVector(x, y - 30);
+
+          // 進入遊戲狀態
+          currentState = State.PLAYING;
+          lastTimeUpdate = millis();
+          if (bgm.isPlaying()) bgm.stop();
+          break;
+        case 1: // 5個問答
+          initQuiz();
+          currentState = State.QUIZ;
+          break;
           // 🌟 這裡修改：串接三個影片按鈕，並暫停背景 BGM 避免聲音重疊
-          case 2: // 滅火方式
-            startVideo("use.mp4");
-            if (bgm != null && bgm.isPlaying()) bgm.pause();
-            currentState = State.VIDEO_PLAY;
-            break;
-          case 3: // A,B類火災
-            startVideo("fire1.mp4");
-            if (bgm != null && bgm.isPlaying()) bgm.pause();
-            currentState = State.VIDEO_PLAY;
-            break;
-          case 4: // B,C類火災
-            startVideo("fire2.mp4");
-            if (bgm != null && bgm.isPlaying()) bgm.pause();
-            currentState = State.VIDEO_PLAY;
-            break;
+        case 2: // 滅火方式
+          startVideo("use.mp4");
+          if (bgm != null && bgm.isPlaying()) bgm.pause();
+          currentState = State.VIDEO_PLAY;
+          break;
+        case 3: // A,B類火災
+          startVideo("fire1.mp4");
+          if (bgm != null && bgm.isPlaying()) bgm.pause();
+          currentState = State.VIDEO_PLAY;
+          break;
+        case 4: // B,C類火災
+          startVideo("fire2.mp4");
+          if (bgm != null && bgm.isPlaying()) bgm.pause();
+          currentState = State.VIDEO_PLAY;
+          break;
         }
       }
     }
-  } 
-  else if (currentState == State.QUIZ) {
+  } else if (currentState == State.QUIZ) {
     handleQuizClick();
   }
   // 🌟 這裡新增：串接影片播放結束後的按鈕點擊
