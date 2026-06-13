@@ -1,10 +1,9 @@
-#include <Wire.h>
 #include "Device.h"
 
-FireExtinguisher extinguisher(0x69, A0); // High
-FireHose hose(0x68, A1); // Low
+FireExtinguisher extinguisher(A0);
+FireHose hose(A1);
 
-unsigned long prevTime = 0, lastSend = 0;
+unsigned long lastSend = 0;
 unsigned long sendInterval = 50;
 bool configured = false;
 
@@ -22,7 +21,6 @@ void handleCommand(String cmd) {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin();
   extinguisher.begin();
   hose.begin();
   delay(100);
@@ -41,8 +39,6 @@ void setup() {
       }
     }
   }
-
-  prevTime = millis();
 }
 
 void loop() {
@@ -53,12 +49,9 @@ void loop() {
   }
 
   unsigned long now = millis();
-  float dt = (now - prevTime) / 1000.0;
-  prevTime = now;
-  if (dt <= 0 || dt > 0.5) dt = 0.02;
 
-  extinguisher.update(dt);
-  hose.update(dt);
+  extinguisher.update();
+  hose.update();
 
   if (now - lastSend >= sendInterval) {
     lastSend = now;

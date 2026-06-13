@@ -45,10 +45,6 @@ void drawSettingsScreen() {
 
   String controlLabel = (bridge != null) ? bridge.enabledLabel(controlEnabled) : "停用";
 
-  String calStatus = "未建模";
-  if (cal.calibrated) calStatus = "已完成";
-  if (bridge != null && cal.calibrationStep >= 0) calStatus = "校準 " + (cal.calibrationStep + 1) + "/9";
-
   String lowLabel = (bridge != null) ? bridge.calibrationLowLabel() : "壓把・釋放點";
   String highLabel = (bridge != null) ? bridge.calibrationHighLabel() : "壓把・最大點";
   String lowHint = (bridge != null) ? bridge.calibrationLowHint() : "";
@@ -58,30 +54,24 @@ void drawSettingsScreen() {
     "序列埠",
     "校準裝置",
     "控制狀態",
-    "九點建模校準",
     lowLabel,
-    highLabel,
-    "靈敏度"
+    highLabel
   };
 
   String[] values = {
     portStr,
     calibrationLabel,
     controlLabel,
-    calStatus,
     "已記錄 " + cal.analogMin,
-    "已記錄 " + cal.analogMax,
-    nf(cal.sensitivity, 0, 1)
+    "已記錄 " + cal.analogMax
   };
 
   String[] hints = {
     (bridge != null && bridge.connected) ? "[Enter] 斷開" : "[← →] 選埠  [Enter] 連線",
     "[← →] 切換",
     "[← →] 切換 啟用 / 停用",
-    live ? (bridge.calibrating() ? "校準進行中" : "[Enter] 開始校準") : "",
     live ? lowHint : "",
-    live ? highHint : "",
-    "[← →] 調整"
+    live ? highHint : ""
   };
 
   float baseY = 128;
@@ -119,7 +109,7 @@ void drawSettingsScreen() {
 
   if (bridge != null) {
     float panelY = baseY + labels.length * itemH + 8;
-    float panelH = 216;
+    float panelH = 150;
 
     fill(30, 220);
     noStroke();
@@ -132,22 +122,15 @@ void drawSettingsScreen() {
     fill(200);
     textSize(13);
 
-    float showPitch, showRoll, showYaw;
     int showAnalog;
     float showNorm;
     String showFresh;
 
     if (bridge.calibrationDevice == 0) {
-      showPitch = bridge.extPitch;
-      showRoll = bridge.extRoll;
-      showYaw = bridge.extYaw;
       showAnalog = bridge.extAnalog;
       showNorm = bridge.extAnalogNormalized();
       showFresh = bridge.extFresh() ? "更新中" : "未更新";
     } else {
-      showPitch = bridge.hosePitch;
-      showRoll = bridge.hoseRoll;
-      showYaw = bridge.hoseYaw;
       showAnalog = bridge.hoseAnalog;
       showNorm = bridge.hoseAnalogNormalized();
       showFresh = bridge.hoseFresh() ? "更新中" : "未更新";
@@ -156,71 +139,21 @@ void drawSettingsScreen() {
     text("目前校準裝置：" + calibrationLabel, itemX + 16, panelY + 32);
     text("控制狀態：" + controlLabel, itemX + 16, panelY + 52);
     text("目前遊戲藥劑：" + agentNames[currentAgent.ordinal()], itemX + 16, panelY + 72);
-    text("遊戲定位來源：" + bridge.currentControlSourceName() + "（水 = 消防瞄子，其它 = 滅火器）", itemX + 16, panelY + 92);
 
-    text(calibrationLabel + "  Pitch " + nf(showPitch, 0, 1)
-      + "°   Roll " + nf(showRoll, 0, 1)
-      + "°   Yaw " + nf(showYaw, 0, 1)
-      + "°   Analog " + showAnalog
+    text(calibrationLabel + "  Analog " + showAnalog
       + "   校準後 " + nf(showNorm, 0, 2),
-      itemX + 16, panelY + 118);
+      itemX + 16, panelY + 98);
 
-    text("目前映射座標  (" + int(bridge.activeTargetX()) + ", " + int(bridge.activeTargetY()) + ")", itemX + 16, panelY + 144);
-    text("建模方式：九點校準 + 相對中心姿態線性擬合", itemX + 16, panelY + 170);
-    text("資料狀態：" + showFresh, itemX + 16, panelY + 190);
+    text("資料狀態：" + showFresh, itemX + 16, panelY + 124);
 
-    float bw = 120, bh = 68;
+    float bw = 120, bh = 8;
     float bx = itemX + itemW - bw - 16;
-    float by = panelY + 52;
-    fill(15);
-    stroke(80);
-    strokeWeight(1);
-    rect(bx, by, bw, bh, 4);
-
-    float dx = map(bridge.activeTargetX(), 0, width, bx + 4, bx + bw - 4);
-    float dy = map(bridge.activeTargetY(), 0, height, by + 4, by + bh - 4);
-    noStroke();
-    fill(0, 255, 100);
-    ellipse(dx, dy, 6, 6);
-
-    float barY = by + bh + 12;
+    float barY = panelY + 40;
     fill(50);
     noStroke();
-    rect(bx, barY, bw, 8, 3);
+    rect(bx, barY, bw, bh, 3);
     fill(0, 200, 255);
-    rect(bx, barY, bw * showNorm, 8, 3);
-  }
-
-  if (live && bridge.calibrating()) {
-    bridge.updateDirectionCalibration();
-
-    if (bridge.calibrating()) {
-      PVector p = bridge.calibrationGuidePoint();
-
-      fill(0, 0, 0, 180);
-      noStroke();
-      rect(0, 0, width, height);
-
-      fill(255);
-      textAlign(CENTER, CENTER);
-      textSize(28);
-      text("請將" + bridge.calibrationDeviceName() + "對準螢幕" + bridge.calibrationStepLabel(), width / 2, height / 2 - 56);
-
-      textSize(24);
-      fill(0, 255, 100);
-      text("倒數 " + bridge.calibrationCountdownSeconds() + " 秒後自動擷取", width / 2, height / 2 - 12);
-
-      textSize(18);
-      fill(200);
-      text("第一點 5 秒，其餘各點 3 秒，按 R 可中斷", width / 2, height / 2 + 24);
-
-      stroke(0, 255, 100);
-      strokeWeight(3);
-      noFill();
-      ellipse(p.x, p.y, 50, 50);
-      line(p.x - 20, p.y, p.x + 20, p.y);
-      line(p.x, p.y - 20, p.x, p.y + 20);
-    }
+    rect(bx, barY, bw * showNorm, bh, 3);
   }
 
   fill(0, 255, 100);
@@ -233,7 +166,7 @@ void drawSettingsScreen() {
 
 void handleSettingsKey() {
   if (bridge == null) return;
-  int count = 7;
+  int count = 5;
 
   if (keyCode == UP) {
     settingsIdx = (settingsIdx - 1 + count) % count;
@@ -259,10 +192,6 @@ void handleSettingsKey() {
         }
         if (bridge.ready) bridge.syncEnabledState();
         break;
-      case 6:
-        bridge.activeCal().sensitivity =
-          constrain(bridge.activeCal().sensitivity + dir * 0.5, 1.0, 50.0);
-        break;
     }
 
   } else if (key == ENTER || key == RETURN) {
@@ -276,12 +205,9 @@ void handleSettingsKey() {
         }
         break;
       case 3:
-        if (bridge.ready && !bridge.calibrating()) bridge.beginDirectionCalibration();
-        break;
-      case 4:
         if (bridge.ready) bridge.calibrateAnalogMin();
         break;
-      case 5:
+      case 4:
         if (bridge.ready) bridge.calibrateAnalogMax();
         break;
     }
